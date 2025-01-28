@@ -1,0 +1,44 @@
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: timetrackingdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: time
+    tmpfs:
+      - /var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  backend:
+    build: ./time-tracking-backend
+    environment:
+      DATABASE_NAME: timetrackingdb
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: time
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  frontend:
+    build: ./time-tracking-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000
