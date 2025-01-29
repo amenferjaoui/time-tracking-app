@@ -84,6 +84,9 @@ DATABASES = {
         'PASSWORD': os.getenv('DATABASE_PASSWORD', 'time'),
         'HOST': os.getenv('DATABASE_HOST', 'db'),  # Default to 'db' for docker container
         'PORT': os.getenv('DATABASE_PORT', '5432'),
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+    },
     }
 }
 
@@ -132,3 +135,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Custom user model
+AUTH_USER_MODEL = 'api.User'
