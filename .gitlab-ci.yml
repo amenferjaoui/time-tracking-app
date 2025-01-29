@@ -57,30 +57,6 @@ test-frontend:
     - npm test
 
 # Build Stage
-# build-backend:
-#   stage: build
-#   image: docker:latest
-#   services:
-#     - docker:dind
-#   variables:
-#     DOCKER_DRIVER: overlay2
-#   before_script:
-#     - docker info
-#   script:
-#     - docker build -t devops.telecomste.fr/projet-startup-poc/time-tracking-app/backend:latest ./time-tracking-backend
-
-# build-frontend:
-#   stage: build
-#   image: docker:latest
-#   services:
-#     - docker:dind
-#   variables:
-#     DOCKER_DRIVER: overlay2
-#   before_script:
-#     - docker info
-#   script:
-#     - docker build -t devops.telecomste.fr/projet-startup-poc/time-tracking-app/frontend:latest ./time-tracking-frontend
-
 build-backend:
   stage: build
   image: docker:24.0.7
