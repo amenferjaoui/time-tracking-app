@@ -7,7 +7,7 @@ variables:
   POSTGRES_DB: timetrackingdb
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: time
-  DATABASE_URL: postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@db:5432/$POSTGRES_DB
+  DATABASE_URL: postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres:5432/$POSTGRES_DB
   VITE_API_URL: http://backend:8000
 
 # Linting Stage
@@ -35,13 +35,17 @@ test-backend:
   stage: test
   image: python:3.11
   services:
-    - postgres:15
+    - name: postgres:15
+      alias: postgres
+  variables:
+    DATABASE_HOST: postgres
   before_script:
     - pip install -r time-tracking-backend/requirements.txt
     - cd time-tracking-backend
     - python manage.py migrate
   script:
     - python manage.py test
+
 
 test-frontend:
   stage: test
@@ -62,4 +66,3 @@ build-frontend:
   stage: build
   script:
     - docker build -t devops.telecomste.fr/projet-startup-poc/time-tracking-app/frontend:latest ./time-tracking-frontend
-

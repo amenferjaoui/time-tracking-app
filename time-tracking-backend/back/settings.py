@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
-
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -80,10 +78,10 @@ WSGI_APPLICATION = 'back.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DATABASE_NAME', 'postgres'),
+        'NAME': os.getenv('DATABASE_NAME', 'timetrackingdb'),
         'USER': os.getenv('DATABASE_USER', 'postgres'),
-        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'Dorsaf2001'),
-        'HOST': os.getenv('DATABASE_HOST', 'localhost'), 
+        'PASSWORD': os.getenv('DATABASE_PASSWORD', 'time'),
+        'HOST': os.getenv('DATABASE_HOST', 'db'),  # Default to 'db' for docker container
         'PORT': os.getenv('DATABASE_PORT', '5432'),
     }
 }
