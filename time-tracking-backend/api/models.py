@@ -1,99 +1,127 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 
-class User(AbstractUser):
-    ROLE_CHOICES = [
-        ('ADMIN', 'Admin'),
-        ('MANAGER', 'Manager'),
-        ('USER', 'User'),
-    ]
-    
-    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+
+class User(models.Model):
+    """
+    Custom user model for time tracking application.
+    """
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        MANAGER = 'MANAGER', 'Manager'
+        USER = 'USER', 'User'
+
+    username = models.CharField(max_length=150, unique=True)
+    password = models.CharField(max_length=128)
+    role = models.CharField(
+        max_length=10,
+        choices=Role.choices,
+        default=Role.USER
+    )
     manager = models.ForeignKey(
         'self',
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        on_delete=models.SET_NULL,
         related_name='team_members'
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Override groups and user_permissions with custom related_names
-    groups = models.ManyToManyField(
-        'auth.Group',
-        related_name='custom_user_set',
-        blank=True,
-        verbose_name='groups',
-        help_text='The groups this user belongs to.',
-    )
-    user_permissions = models.ManyToManyField(
-        'auth.Permission',
-        related_name='custom_user_set',
-        blank=True,
-        verbose_name='user permissions',
-        help_text='Specific permissions for this user.',
-    )
-
     class Meta:
-        db_table = 'users'
+        ordering = ['username']
+
+    def __str__(self):
+        return f"{self.username} ({self.get_role_display()})"
+
 
 class Project(models.Model):
-    name = models.CharField(max_length=255)
-    description = models.TextField()
+    """
+    Project model for tracking different projects users can log time against.
+    """
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
     created_by = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
-        related_name='created_projects',
-        limit_choices_to={'role': 'MANAGER'}
+        on_delete=models.PROTECT,
+        limit_choices_to={'role': User.Role.MANAGER}
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'projects'
+        ordering = ['name']
 
     def __str__(self):
         return self.name
 
+
 class TimeEntry(models.Model):
+    """
+    Time entry model for logging hours spent on projects.
+    """
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='time_entries'
     )
     project = models.ForeignKey(
         Project,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='time_entries'
     )
     date = models.DateField()
-    hours = models.DecimalField(
-        max_digits=4,
-        decimal_places=2,
-        validators=[MinValueValidator(0)]
+    hours = models.PositiveIntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(24)
+        ]
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = 'time_entries'
-        verbose_name_plural = 'time entries'
-
-class Report(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='reports'
-    )
-    month = models.CharField(max_length=7)  # Format: YYYY-MM
-    report_file = models.FileField(upload_to='reports/')
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        db_table = 'reports'
+        ordering = ['-date', '-created_at']
+        verbose_name_plural = 'Time entries'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'project', 'date'],
+                name='unique_user_project_date'
+            )
+        ]
 
     def __str__(self):
-        return f"Report for {self.user.username} - {self.month}"
+        return f"{self.user.username} - {self.project.name} - {self.date} ({self.hours}h)"
+
+
+class Report(models.Model):
+    """
+    Monthly time report (CRA - Compte-Rendu d'Activité) model.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='reports'
+    )
+    month = models.CharField(
+        max_length=7,
+        help_text="Format: YYYY-MM"
+    )
+    report_file = models.FileField(
+        upload_to='reports/%Y/%m/',
+        help_text="PDF file containing the monthly activity report"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-month']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'month'],
+                name='unique_user_month'
+            )
+        ]
+
+    def __str__(self):
+        return f"CRA - {self.user.username} - {self.month}"

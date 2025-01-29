@@ -1,4 +1,3 @@
-
 services:
   db:
     image: postgres:15
@@ -38,8 +37,25 @@ services:
       db:
         condition: service_healthy
     command: >
-      sh -c "python manage.py migrate &&
+      sh -c "python manage.py makemigrations api --noinput &&
+             python manage.py migrate api --noinput &&
+             python manage.py migrate --noinput &&
              python manage.py runserver 0.0.0.0:8000"
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./time-tracking-backend
+          target: /app
+          ignore:
+            - "**/__pycache__"
+            - "**/*.pyc"
+            - "**/*.pyo"
+            - "**/*.pyd"
+            - "**/.Python"
+            - "**/env"
+            - "**/venv"
+            - "**/.env"
+            - "**/.venv"
 
   frontend:
     build: ./time-tracking-frontend
@@ -49,6 +65,16 @@ services:
       - backend
     environment:
       - VITE_API_URL=http://localhost:8000
+    develop:
+      watch:
+        - action: sync
+          path: ./time-tracking-frontend/src
+          target: /app/src
+          ignore:
+            - node_modules/
+            - dist/
+        - action: rebuild
+          path: ./time-tracking-frontend/package.json
 
 volumes:
   postgres_data:
