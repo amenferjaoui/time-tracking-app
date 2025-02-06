@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { authApi } from '../services/api';
+import { ApiError } from '../types';
 import '../styles/form.css';
 
 interface LoginForm {
@@ -20,11 +21,44 @@ export default function Login({ onLoginSuccess }: Props) {
     try {
       setError(null);
       const response = await authApi.login(data.username, data.password);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Vérifier le rôle de l'utilisateur
+      const userRole = response.data.role;
+      const isStaff = response.data.is_staff;
+      const isSuperuser = response.data.is_superuser;
+      
+      console.log('Login successful:', {
+        username: response.data.username,
+        role: userRole,
+        is_staff: isStaff,
+        is_superuser: isSuperuser
+      });
+      
       onLoginSuccess();
-    } catch /*(err)*/ {
-      setError('Invalid username or password');
+    } catch (err) {
+      console.error('Login error:', err);
+      const apiError = err as ApiError;
+      
+      if (apiError.response?.status === 401) {
+        setError("Nom d'utilisateur ou mot de passe incorrect");
+      } else if (apiError.response?.data) {
+        // Gérer les erreurs de validation du backend
+        if (typeof apiError.response.data === 'object') {
+          const errors = Object.entries(apiError.response.data)
+            .map(([field, messages]) => {
+              if (Array.isArray(messages)) {
+                return `${field}: ${messages.join(', ')}`;
+              }
+              return `${field}: ${messages}`;
+            })
+            .join(', ');
+          setError(errors);
+        } else {
+          setError(apiError.response.data as string);
+        }
+      } else {
+        setError("Une erreur s'est produite lors de la connexion");
+      }
     }
   };
 

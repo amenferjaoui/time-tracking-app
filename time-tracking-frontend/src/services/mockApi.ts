@@ -2,23 +2,23 @@ import { TimeEntry, Project, User } from '../types';
 
 // Mock data
 const mockProjects: Project[] = [
-  { id: '1', name: 'Website Redesign', description: 'Company website redesign project' },
-  { id: '2', name: 'Mobile App', description: 'Mobile application development' },
-  { id: '3', name: 'Database Migration', description: 'Legacy database migration' }
+  { id: 1, name: 'Website Redesign', description: 'Company website redesign project', created_by: 1 },
+  { id: 2, name: 'Mobile App', description: 'Mobile application development', created_by: 1 },
+  { id: 3, name: 'Database Migration', description: 'Legacy database migration', created_by: 1 }
 ];
 
 const mockUsers: User[] = [
-  { id: '1', username: 'admin', firstName: 'Admin', lastName: 'User', role: 'ADMIN' },
-  { id: '2', username: 'manager', firstName: 'Manager', lastName: 'User', role: 'MANAGER' },
-  { id: '3', username: 'user1', firstName: 'John', lastName: 'Doe', role: 'USER', managerId: '2' },
-  { id: '4', username: 'user2', firstName: 'Jane', lastName: 'Smith', role: 'USER', managerId: '2' }
+  { id: 1, username: 'admin', role: 'ADMIN' },
+  { id: 2, username: 'manager', role: 'MANAGER' },
+  { id: 3, username: 'user1', role: 'USER', manager: 2 },
+  { id: 4, username: 'user2', role: 'USER', manager: 2 }
 ];
 
 const mockTimeEntries: TimeEntry[] = [
-  { id: '1', date: '2024-02-01', project: '1', hours: 8, userId: '3' },
-  { id: '2', date: '2024-02-01', project: '2', hours: 6, userId: '4' },
-  { id: '3', date: '2024-02-02', project: '1', hours: 7, userId: '3' },
-  { id: '4', date: '2024-02-02', project: '3', hours: 5, userId: '4' }
+  { id: 1, date: '2024-02-01', project: 1, hours: 8, user: 3 },
+  { id: 2, date: '2024-02-01', project: 2, hours: 6, user: 4 },
+  { id: 3, date: '2024-02-02', project: 1, hours: 7, user: 3 },
+  { id: 4, date: '2024-02-02', project: 3, hours: 5, user: 4 }
 ];
 
 // Helper function to simulate API delay
@@ -26,17 +26,17 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Mock API implementation
 export const timeEntriesApi = {
-  getAssignedUsers: async (managerId: string) => {
+  getAssignedUsers: async (managerId: number) => {
     await delay(500);
-    const assignedUsers = mockUsers.filter(user => user.managerId === managerId);
+    const assignedUsers = mockUsers.filter(user => user.manager === managerId);
     return { data: assignedUsers };
   },
-  exportMonthlyReportPDF: async (userId: string, month: string) => {
+  exportMonthlyReportPDF: async (userId: number, month: string) => {
     await delay(500);
     // Mock PDF generation - in reality, this would generate a real PDF
     const entries = mockTimeEntries.filter(entry => {
       const entryMonth = entry.date.substring(0, 7);
-      return entry.userId === userId && entryMonth === month;
+      return entry.user === userId && entryMonth === month;
     });
     
     // Return a mock PDF as a Blob
@@ -52,30 +52,30 @@ export const timeEntriesApi = {
     await delay(500);
     const newEntry = {
       ...entry,
-      id: Math.random().toString(36).substr(2, 9)
+      id: Math.floor(Math.random() * 10000) + 1
     };
     mockTimeEntries.push(newEntry);
     return { data: newEntry };
   },
-  update: async (id: string, entry: Partial<TimeEntry>) => {
+  update: async (id: number, entry: Partial<TimeEntry>) => {
     await delay(500);
     const index = mockTimeEntries.findIndex(e => e.id === id);
     if (index === -1) throw new Error('Entry not found');
     mockTimeEntries[index] = { ...mockTimeEntries[index], ...entry };
     return { data: mockTimeEntries[index] };
   },
-  delete: async (id: string) => {
+  delete: async (id: number) => {
     await delay(500);
     const index = mockTimeEntries.findIndex(e => e.id === id);
     if (index === -1) throw new Error('Entry not found');
     mockTimeEntries.splice(index, 1);
     return { data: null };
   },
-  getMonthlyReport: async (userId: string, month: string) => {
+  getMonthlyReport: async (userId: number, month: string) => {
     await delay(500);
     const entries = mockTimeEntries.filter(entry => {
       const entryMonth = entry.date.substring(0, 7); // YYYY-MM
-      return entry.userId === userId && entryMonth === month;
+      return entry.user === userId && entryMonth === month;
     });
     return { data: entries };
   },
