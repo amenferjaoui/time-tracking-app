@@ -45,3 +45,13 @@ export interface AuthResponse {
 export interface RefreshResponse {
   access: string;
 }
+
+export interface ApiError {
+  response?: {
+    status?: number;
+    data?: {
+      [key: string]: string | string[];
+    } | string;
+  };
+  message?: string;
+}

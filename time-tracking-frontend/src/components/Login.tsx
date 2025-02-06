@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { authApi } from '../services/api';
+import { ApiError } from '../types';
 import '../styles/form.css';
 
 interface LoginForm {
@@ -34,15 +35,16 @@ export default function Login({ onLoginSuccess }: Props) {
       });
       
       onLoginSuccess();
-    } catch (err: any) {
+    } catch (err) {
       console.error('Login error:', err);
+      const apiError = err as ApiError;
       
-      if (err.response?.status === 401) {
+      if (apiError.response?.status === 401) {
         setError("Nom d'utilisateur ou mot de passe incorrect");
-      } else if (err.response?.data) {
+      } else if (apiError.response?.data) {
         // Gérer les erreurs de validation du backend
-        if (typeof err.response.data === 'object') {
-          const errors = Object.entries(err.response.data)
+        if (typeof apiError.response.data === 'object') {
+          const errors = Object.entries(apiError.response.data)
             .map(([field, messages]) => {
               if (Array.isArray(messages)) {
                 return `${field}: ${messages.join(', ')}`;
@@ -52,7 +54,7 @@ export default function Login({ onLoginSuccess }: Props) {
             .join(', ');
           setError(errors);
         } else {
-          setError(err.response.data);
+          setError(apiError.response.data as string);
         }
       } else {
         setError("Une erreur s'est produite lors de la connexion");
