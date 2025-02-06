@@ -243,6 +243,8 @@ import '../styles/table.css';
 
 interface UserForm {
   username: string;
+  firstName: string;
+  lastName: string;
   password: string;
   role: 'USER' | 'MANAGER' | 'ADMIN';
   managerId?: string;
@@ -260,6 +262,8 @@ export default function UserManagement({ currentUser }: Props) {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<UserForm>({
     username: '',
+    firstName: '',
+    lastName: '',
     password: '',
     role: 'USER'
   });
@@ -299,6 +303,8 @@ export default function UserManagement({ currentUser }: Props) {
       }
       setFormData({
         username: '',
+        firstName: '',
+        lastName: '',
         password: '',
         role: 'USER'
       });
@@ -312,6 +318,8 @@ export default function UserManagement({ currentUser }: Props) {
     setEditingUser(user);
     setFormData({
       username: user.username,
+      firstName: user.firstName || '',
+      lastName: user.lastName || '',
       password: '', // Ne pas afficher le mot de passe existant
       role: user.role,
       managerId: user.managerId
@@ -334,6 +342,8 @@ export default function UserManagement({ currentUser }: Props) {
     setEditingUser(null);
     setFormData({
       username: '',
+      firstName: '',
+      lastName: '',
       password: '',
       role: 'USER'
     });
@@ -354,6 +364,28 @@ export default function UserManagement({ currentUser }: Props) {
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               required
               placeholder="Nom d'utilisateur"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Prénom :</label>
+            <input
+              type="text"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              required
+              placeholder="Prénom"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Nom :</label>
+            <input
+              type="text"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              required
+              placeholder="Nom"
             />
           </div>
 
@@ -428,6 +460,8 @@ export default function UserManagement({ currentUser }: Props) {
             <thead>
               <tr>
                 <th>Nom d'utilisateur</th>
+                <th>Prénom</th>
+                <th>Nom</th>
                 <th>Rôle</th>
                 <th>Manager</th>
                 <th>Actions</th>
@@ -437,6 +471,8 @@ export default function UserManagement({ currentUser }: Props) {
               {users.map((user) => (
                 <tr key={user.id}>
                   <td>{user.username}</td>
+                  <td>{user.firstName}</td>
+                  <td>{user.lastName}</td>
                   <td>{user.role}</td>
                   <td>
                     {user.managerId &&
