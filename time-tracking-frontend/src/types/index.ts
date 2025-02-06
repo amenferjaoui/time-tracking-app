@@ -15,6 +15,8 @@ export interface Project {
 export interface User {
   id: string;
   username: string;
+  firstName: string;
+  lastName: string;
   role: 'ADMIN' | 'MANAGER' | 'USER';
   managerId?: string;
 }

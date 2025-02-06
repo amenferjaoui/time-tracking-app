@@ -445,7 +445,7 @@ export default function App() {
             <Route
               path="/"
               element={
-                user ? (
+                user && user.id ? (
                   <ProtectedRoute user={user}>
                     <div className="content-section">
                       <h2>Saisie des temps</h2>

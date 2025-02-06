@@ -131,7 +131,8 @@ import "../styles/table.css";
 
 interface Props {
   user: User;
-  selectedUserId?: string;
+  isManager?: boolean;
+  onUserSelect?: (userId: string) => void;
 }
 
 interface MonthlyData {
@@ -141,13 +142,29 @@ interface MonthlyData {
   };
 }
 
-export default function MonthlyReport({ user, selectedUserId }: Props) {
+export default function MonthlyReport({ user, isManager, onUserSelect }: Props) {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
+  const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
 
-  // useCallback pour éviter la recréation de fetchMonthlyData
+  useEffect(() => {
+    if (isManager) {
+      const fetchAssignedUsers = async () => {
+        try {
+          const response = await timeEntriesApi.getAssignedUsers(user.id);
+          setAssignedUsers(response.data);
+        } catch (error) {
+          console.error(error);
+          setError("Failed to load assigned users");
+        }
+      };
+      fetchAssignedUsers();
+    }
+  }, [isManager, user.id]);
+
   const fetchMonthlyData = useCallback(async () => {
     try {
       setLoading(true);
@@ -182,8 +199,21 @@ export default function MonthlyReport({ user, selectedUserId }: Props) {
   const monthlyData = aggregateData();
 
   const handleExportPDF = async () => {
-    // TODO: Implement PDF export using a library like jsPDF
-    console.log("Export to PDF");
+    try {
+      const response = await timeEntriesApi.exportMonthlyReportPDF(selectedUserId || user.id, month);
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport-${month}-${selectedUserId || user.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      setError("Failed to export PDF");
+    }
   };
 
   if (loading) return <div className="loading">Loading report...</div>;
@@ -193,6 +223,23 @@ export default function MonthlyReport({ user, selectedUserId }: Props) {
       <div className="report-header">
         <h2>Rapport Mensuel</h2>
         <div className="report-controls">
+          {isManager && (
+            <select
+              value={selectedUserId || user.id}
+              onChange={(e) => {
+                setSelectedUserId(e.target.value);
+                onUserSelect?.(e.target.value);
+              }}
+              className="user-selector"
+            >
+              <option value={user.id}>Mes temps</option>
+              {assignedUsers.map((assignedUser) => (
+                <option key={assignedUser.id} value={assignedUser.id}>
+                  {assignedUser.firstName} {assignedUser.lastName}
+                </option>
+              ))}
+            </select>
+          )}
           <input
             type="month"
             value={month}
@@ -246,4 +293,3 @@ export default function MonthlyReport({ user, selectedUserId }: Props) {
     </div>
   );
 }
-

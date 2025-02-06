@@ -8,10 +8,10 @@ const mockProjects: Project[] = [
 ];
 
 const mockUsers: User[] = [
-  { id: '1', username: 'admin', role: 'ADMIN' },
-  { id: '2', username: 'manager', role: 'MANAGER' },
-  { id: '3', username: 'user1', role: 'USER', managerId: '2' },
-  { id: '4', username: 'user2', role: 'USER', managerId: '2' }
+  { id: '1', username: 'admin', firstName: 'Admin', lastName: 'User', role: 'ADMIN' },
+  { id: '2', username: 'manager', firstName: 'Manager', lastName: 'User', role: 'MANAGER' },
+  { id: '3', username: 'user1', firstName: 'John', lastName: 'Doe', role: 'USER', managerId: '2' },
+  { id: '4', username: 'user2', firstName: 'Jane', lastName: 'Smith', role: 'USER', managerId: '2' }
 ];
 
 const mockTimeEntries: TimeEntry[] = [
@@ -26,6 +26,24 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Mock API implementation
 export const timeEntriesApi = {
+  getAssignedUsers: async (managerId: string) => {
+    await delay(500);
+    const assignedUsers = mockUsers.filter(user => user.managerId === managerId);
+    return { data: assignedUsers };
+  },
+  exportMonthlyReportPDF: async (userId: string, month: string) => {
+    await delay(500);
+    // Mock PDF generation - in reality, this would generate a real PDF
+    const entries = mockTimeEntries.filter(entry => {
+      const entryMonth = entry.date.substring(0, 7);
+      return entry.userId === userId && entryMonth === month;
+    });
+    
+    // Return a mock PDF as a Blob
+    const mockPdfContent = JSON.stringify(entries, null, 2);
+    const blob = new Blob([mockPdfContent], { type: 'application/pdf' });
+    return { data: blob };
+  },
   getAll: async () => {
     await delay(500);
     return { data: mockTimeEntries };
