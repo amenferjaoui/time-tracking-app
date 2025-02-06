@@ -23,7 +23,7 @@ export default function Login({ onLoginSuccess }: Props) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       onLoginSuccess();
-    } catch (err) {
+    } catch /*(err)*/ {
       setError('Invalid username or password');
     }
   };
