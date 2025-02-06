@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'password', 'role', 'manager', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
-        read_only_fields = ('id', 'role')  # role est en lecture seule car il est déterminé par is_superuser/is_staff
+        read_only_fields = ('id',)  # role n'est plus en lecture seule
         extra_kwargs = {
             'manager': {'required': False},
             'is_superuser': {'required': False},
@@ -19,13 +19,12 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
+        # Ne pas hasher le mot de passe ici car il sera hashé dans le modèle
+        user = User.objects.create(**validated_data)
         return user
 
     def update(self, instance, validated_data):
+        # Pour la mise à jour, on doit quand même hasher le mot de passe car save() ne le fera pas
         if 'password' in validated_data:
             password = validated_data.pop('password')
             instance.set_password(password)
@@ -39,13 +38,25 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, data):
         # Seul un superuser peut créer/modifier d'autres superusers
         request = self.context.get('request')
-        if request and data.get('is_superuser') and not request.user.is_superuser:
-            raise serializers.ValidationError("Seul un administrateur peut gérer les droits superuser")
-        
-        # Un non-staff ne peut pas devenir staff sans intervention d'un admin
-        if data.get('is_staff') and request and not request.user.is_staff:
-            raise serializers.ValidationError("Seul un staff member peut gérer les droits staff")
-            
+        if request and not request.user.is_superuser:
+            if data.get('role') == 'admin' or data.get('is_superuser'):
+                raise serializers.ValidationError("Seul un administrateur peut créer ou modifier des administrateurs")
+            if data.get('role') == 'manager' or data.get('is_staff'):
+                raise serializers.ValidationError("Seul un administrateur peut créer ou modifier des managers")
+
+        # Synchroniser role avec is_superuser et is_staff
+        role = data.get('role')
+        if role:
+            if role == 'admin':
+                data['is_superuser'] = True
+                data['is_staff'] = True
+            elif role == 'manager':
+                data['is_superuser'] = False
+                data['is_staff'] = True
+            else:  # user
+                data['is_superuser'] = False
+                data['is_staff'] = False
+
         return data
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

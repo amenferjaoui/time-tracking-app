@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.hashers import make_password
 
 class User(AbstractUser):
     ROLES = (
@@ -15,13 +16,9 @@ class User(AbstractUser):
         return self.username
 
     def save(self, *args, **kwargs):
-        # Définir le rôle en fonction de is_superuser et is_staff
-        if self.is_superuser:
-            self.role = 'admin'
-        elif self.is_staff:
-            self.role = 'manager'
-        else:
-            self.role = 'user'
+        # Hash the password if it's not already hashed
+        if self.pk is None or not self.password.startswith(('pbkdf2_sha256$', 'bcrypt$', 'argon2')):
+            self.password = make_password(self.password)
             
         super().save(*args, **kwargs)
     
