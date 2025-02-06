@@ -24,7 +24,7 @@ class User(AbstractUser):
     
 class Projet(models.Model):
     nom = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     manager = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projets')
 
     def __str__(self):
@@ -35,7 +35,7 @@ class SaisieTemps(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     date = models.DateField()
     temps = models.DecimalField(max_digits=5, decimal_places=2)  # Temps en heures
-    description = models.TextField()
+    description = models.TextField(blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.projet.nom} - {self.date}"

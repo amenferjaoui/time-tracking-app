@@ -95,18 +95,24 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaisieTemps
         fields = ('id', 'user', 'projet', 'date', 'temps', 'description')
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'user')
+        extra_kwargs = {
+            'description': {'required': False}
+        }
 
     def validate(self, data):
         # Vérifier que l'utilisateur a accès au projet
         user = self.context['request'].user
-        if not user.is_staff and data['projet'].manager != user.manager:
-            raise serializers.ValidationError("Vous n'avez pas accès à ce projet")
+        projet = data['projet']
+        if not user.is_staff and projet.manager != user.manager:
+            # Vérifier si l'utilisateur est assigné à ce manager
+            if not user.manager or user.manager != projet.manager:
+                raise serializers.ValidationError("Vous n'avez pas accès à ce projet")
         return data
 
     def validate_temps(self, value):
-        if value <= 0 or value > 24:
-            raise serializers.ValidationError("Le temps doit être compris entre 0 et 24 heures")
+        if value not in [0, 0.5, 1]:
+            raise serializers.ValidationError("Le temps doit être 0, 0.5 (demi-journée) ou 1 (journée entière)")
         return value
 
 class CompteRenduSerializer(serializers.ModelSerializer):

@@ -9,7 +9,7 @@ interface Props {
 
 interface TimeEntryMap {
   [key: string]: { // key format: "projectId-YYYY-MM-DD"
-    hours: number;
+    temps: number;
     entryId?: number;
     saving?: boolean;
     error?: string;
@@ -51,9 +51,9 @@ export default function TimeEntryTable({ userId }: Props) {
 
         const entriesMap: TimeEntryMap = {};
         entriesRes.data.forEach((entry: TimeEntry) => {
-          const key = `${entry.project}-${entry.date}`;
+          const key = `${entry.projet}-${entry.date}`;
           entriesMap[key] = {
-            hours: entry.hours,
+            temps: entry.temps,
             entryId: entry.id
           };
         });
@@ -74,7 +74,10 @@ export default function TimeEntryTable({ userId }: Props) {
     newValue: string
   ) => {
     const hours = newValue === '' ? 0 : parseFloat(newValue);
-    if (isNaN(hours) || hours < 0 || hours > 24) return;
+    // Ne permettre que 0, 0.5 ou 1
+    if (![0, 0.5, 1].includes(hours)) {
+      return;
+    }
 
     const dateStr = date.toISOString().split('T')[0];
     const key = `${projectId}-${dateStr}`;
@@ -94,22 +97,22 @@ export default function TimeEntryTable({ userId }: Props) {
         setTimeEntries(newEntries);
       } else if (existingEntry?.entryId) {
         const updated = await timeEntriesApi.update(existingEntry.entryId, {
-          hours
+          temps: hours
         });
         setTimeEntries(prev => ({
           ...prev,
-          [key]: { hours, entryId: updated.data.id, saving: false }
+          [key]: { temps: hours, entryId: updated.data.id, saving: false }
         }));
       } else if (hours > 0) {
         const created = await timeEntriesApi.create({
           date: dateStr,
-          project: projectId,
-          hours,
-          user: userId
+          projet: projectId,
+          temps: hours,
+          description: ''  // Required field in the backend
         });
         setTimeEntries(prev => ({
           ...prev,
-          [key]: { hours, entryId: created.data.id, saving: false }
+          [key]: { temps: hours, entryId: created.data.id, saving: false }
         }));
       }
     } catch (error) {
@@ -128,7 +131,7 @@ export default function TimeEntryTable({ userId }: Props) {
   const getHours = (projectId: number, date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     const key = `${projectId}-${dateStr}`;
-    return timeEntries[key]?.hours || '';
+    return timeEntries[key]?.temps || '';
   };
 
   const getCellStatus = (projectId: number, date: Date) => {
@@ -230,7 +233,7 @@ export default function TimeEntryTable({ userId }: Props) {
         <tbody>
           {projects.map(project => (
             <tr key={project.id}>
-              <td className="project-name">{project.name}</td>
+              <td className="project-name">{project.nom}</td>
               {currentWeek.map(date => {
                 const status = getCellStatus(project.id, date);
                 return (
@@ -238,7 +241,7 @@ export default function TimeEntryTable({ userId }: Props) {
                     <input
                       type="number"
                       min="0"
-                      max="24"
+                      max="1"
                       step="0.5"
                       value={getHours(project.id, date)}
                       onChange={(e) => handleHoursChange(project.id, date, e.target.value)}

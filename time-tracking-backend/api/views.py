@@ -106,6 +106,8 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         return SaisieTemps.objects.filter(user=user)
 
     def perform_create(self, serializer):
+        # Set the user before validation
+        serializer.initial_data['user'] = self.request.user.id
         serializer.save(user=self.request.user)
 
     @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/monthly/(?P<month>\d{4}-\d{2})')

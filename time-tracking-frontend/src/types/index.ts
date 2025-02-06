@@ -1,18 +1,19 @@
 export interface TimeEntry {
   id?: number;
   date: string;
-  project: number;
-  hours: number;
+  projet: number;
+  temps: number;
   user?: number;
+  description?: string;
   created_at?: string;
   updated_at?: string;
 }
 
 export interface Project {
   id: number;
-  name: string;
+  nom: string;
   description?: string;
-  created_by: number;
+  manager: number;
   created_at?: string;
   updated_at?: string;
 }
