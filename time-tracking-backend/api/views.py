@@ -92,6 +92,43 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/monthly/(?P<month>\d{4}-\d{2})')
+    def monthly(self, request, user_id=None, month=None):
+        try:
+            year, month = map(int, month.split('-'))
+            queryset = self.get_queryset().filter(
+                user_id=user_id,
+                date__year=year,
+                date__month=month
+            )
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Format de date invalide. Utilisez YYYY-MM"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/report/(?P<month>\d{4}-\d{2})')
+    def report(self, request, user_id=None, month=None):
+        try:
+            year, month = map(int, month.split('-'))
+            queryset = self.get_queryset().filter(
+                user_id=user_id,
+                date__year=year,
+                date__month=month
+            )
+            
+            # TODO: Implement PDF generation here
+            # For now, return the data as JSON
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except (ValueError, TypeError):
+            return Response(
+                {"error": "Format de date invalide. Utilisez YYYY-MM"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 class CompteRenduViewSet(viewsets.ModelViewSet):
     queryset = CompteRendu.objects.all()
     serializer_class = CompteRenduSerializer

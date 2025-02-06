@@ -60,48 +60,48 @@ export const timeEntriesApi = {
     return response;
   },
   exportMonthlyReportPDF: async (userId: number, month: string) => {
-    const response = await api.get<Blob>(`/time-entries/${userId}/report/${month}/`, {
+    const response = await api.get<Blob>(`/saisie-temps/${userId}/report/${month}/`, {
       responseType: 'blob'
     });
     return response;
   },
   getAll: async () => {
-    const response = await api.get<TimeEntry[]>('/time-entries/');
+    const response = await api.get<TimeEntry[]>('/saisie-temps/');
     return response;
   },
   create: async (entry: Omit<TimeEntry, 'id' | 'created_at' | 'updated_at'>) => {
-    const response = await api.post<TimeEntry>('/time-entries/', entry);
+    const response = await api.post<TimeEntry>('/saisie-temps/', entry);
     return response;
   },
   update: async (id: number, entry: Partial<TimeEntry>) => {
-    const response = await api.patch<TimeEntry>(`/time-entries/${id}/`, entry);
+    const response = await api.patch<TimeEntry>(`/saisie-temps/${id}/`, entry);
     return response;
   },
   delete: async (id: number) => {
-    const response = await api.delete(`/time-entries/${id}/`);
+    const response = await api.delete(`/saisie-temps/${id}/`);
     return response;
   },
   getMonthlyReport: async (userId: number, month: string) => {
-    const response = await api.get<TimeEntry[]>(`/time-entries/${userId}/monthly/${month}/`);
+    const response = await api.get<TimeEntry[]>(`/saisie-temps/${userId}/monthly/${month}/`);
     return response;
   },
 };
 
 export const projectsApi = {
   getAll: async () => {
-    const response = await api.get<Project[]>('/projects/');
+    const response = await api.get<Project[]>('/projets/');
     return response;
   },
   create: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
-    const response = await api.post<Project>('/projects/', project);
+    const response = await api.post<Project>('/projets/', project);
     return response;
   },
   update: async (id: number, project: Partial<Project>) => {
-    const response = await api.patch<Project>(`/projects/${id}/`, project);
+    const response = await api.patch<Project>(`/projets/${id}/`, project);
     return response;
   },
   delete: async (id: number) => {
-    const response = await api.delete(`/projects/${id}/`);
+    const response = await api.delete(`/projets/${id}/`);
     return response;
   },
 };
@@ -115,12 +115,14 @@ export const authApi = {
     localStorage.setItem('access_token', response.data.access);
     localStorage.setItem('refresh_token', response.data.refresh);
     // Stocker les informations utilisateur
-    localStorage.setItem('user', JSON.stringify({
+    const userData = {
+      id: response.data.id,
       username: response.data.username,
       role: response.data.role,
       is_superuser: response.data.is_superuser,
       is_staff: response.data.is_staff
-    }));
+    };
+    localStorage.setItem('user', JSON.stringify(userData));
     return response;
   },
   logout: () => {

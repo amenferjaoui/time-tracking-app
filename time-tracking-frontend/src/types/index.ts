@@ -38,6 +38,7 @@ export interface AuthResponse {
   refresh: string;
   role: User['role'];
   username: string;
+  id: number;
   is_superuser: boolean;
   is_staff: boolean;
 }
