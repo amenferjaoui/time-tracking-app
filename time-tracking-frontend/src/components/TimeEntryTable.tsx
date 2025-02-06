@@ -237,13 +237,13 @@ import { projectsApi, timeEntriesApi } from "../services/api";
 import "./../styles/table.css";
 
 interface Props {
-  userId: string;
+  userId: number;
 }
 
 interface TimeEntryMap {
   [key: string]: { // key format: "projectId-YYYY-MM-DD"
     hours: number;
-    entryId?: string;
+    entryId?: number;
   };
 }
 
@@ -300,7 +300,7 @@ export default function TimeEntryTable({ userId }: Props) {
   }, [selectedDate, userId]);
 
   const handleHoursChange = async (
-    projectId: string,
+    projectId: number,
     date: Date,
     newValue: string
   ) => {
@@ -330,7 +330,7 @@ export default function TimeEntryTable({ userId }: Props) {
           date: dateStr,
           project: projectId,
           hours,
-          userId
+          user: userId
         });
         setTimeEntries(prev => ({
           ...prev,
@@ -342,7 +342,7 @@ export default function TimeEntryTable({ userId }: Props) {
     }
   };
 
-  const getHours = (projectId: string, date: Date) => {
+  const getHours = (projectId: number, date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
     const key = `${projectId}-${dateStr}`;
     return timeEntries[key]?.hours || '';

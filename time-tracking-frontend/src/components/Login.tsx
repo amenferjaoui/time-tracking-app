@@ -20,11 +20,43 @@ export default function Login({ onLoginSuccess }: Props) {
     try {
       setError(null);
       const response = await authApi.login(data.username, data.password);
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Vérifier le rôle de l'utilisateur
+      const userRole = response.data.role;
+      const isStaff = response.data.is_staff;
+      const isSuperuser = response.data.is_superuser;
+      
+      console.log('Login successful:', {
+        username: response.data.username,
+        role: userRole,
+        is_staff: isStaff,
+        is_superuser: isSuperuser
+      });
+      
       onLoginSuccess();
-    } catch /*(err)*/ {
-      setError('Invalid username or password');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      
+      if (err.response?.status === 401) {
+        setError("Nom d'utilisateur ou mot de passe incorrect");
+      } else if (err.response?.data) {
+        // Gérer les erreurs de validation du backend
+        if (typeof err.response.data === 'object') {
+          const errors = Object.entries(err.response.data)
+            .map(([field, messages]) => {
+              if (Array.isArray(messages)) {
+                return `${field}: ${messages.join(', ')}`;
+              }
+              return `${field}: ${messages}`;
+            })
+            .join(', ');
+          setError(errors);
+        } else {
+          setError(err.response.data);
+        }
+      } else {
+        setError("Une erreur s'est produite lors de la connexion");
+      }
     }
   };
 
