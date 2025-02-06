@@ -147,7 +147,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
   const [entries, setEntries] = useState<TimeEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string | undefined>(undefined);
+  const [selectedUserId, setSelectedUserId] = useState<string>(user.id.toString());
   const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
 
   useEffect(() => {
@@ -169,7 +169,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     try {
       setLoading(true);
       setError(null);
-      const userId = selectedUserId || user.id;
+      const userId = parseInt(selectedUserId);
       const response = await timeEntriesApi.getMonthlyReport(userId, month);
       setEntries(response.data);
     } catch (error) {
@@ -200,12 +200,12 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
 
   const handleExportPDF = async () => {
     try {
-      const response = await timeEntriesApi.exportMonthlyReportPDF(selectedUserId || user.id, month);
+      const response = await timeEntriesApi.exportMonthlyReportPDF(parseInt(selectedUserId), month);
       const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `rapport-${month}-${selectedUserId || user.id}.pdf`;
+      link.download = `rapport-${month}-${selectedUserId}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -225,7 +225,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
         <div className="report-controls">
           {isManager && (
             <select
-              value={selectedUserId || user.id}
+              value={selectedUserId}
               onChange={(e) => {
                 setSelectedUserId(e.target.value);
                 onUserSelect?.(e.target.value);
@@ -235,7 +235,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
               <option value={user.id}>Mes temps</option>
               {assignedUsers.map((assignedUser) => (
                 <option key={assignedUser.id} value={assignedUser.id}>
-                  {assignedUser.firstName} {assignedUser.lastName}
+                  {assignedUser.username}
                 </option>
               ))}
             </select>
