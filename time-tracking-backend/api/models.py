@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.hashers import make_password
 
 class User(AbstractUser):
     ROLES = (
@@ -11,23 +12,21 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLES, default='user')
     manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_users')
 
-    def __str__(self):
-        return self.username
-
     def save(self, *args, **kwargs):
-        # Définir le rôle en fonction de is_superuser et is_staff
+        # Synchroniser le rôle avec is_superuser et is_staff
         if self.is_superuser:
             self.role = 'admin'
         elif self.is_staff:
             self.role = 'manager'
-        else:
-            self.role = 'user'
-            
         super().save(*args, **kwargs)
-    
+
+    def __str__(self):
+        return self.username
+
+
 class Projet(models.Model):
     nom = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     manager = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projets')
 
     def __str__(self):
@@ -38,7 +37,7 @@ class SaisieTemps(models.Model):
     projet = models.ForeignKey(Projet, on_delete=models.CASCADE)
     date = models.DateField()
     temps = models.DecimalField(max_digits=5, decimal_places=2)  # Temps en heures
-    description = models.TextField()
+    description = models.TextField(blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.projet.nom} - {self.date}"

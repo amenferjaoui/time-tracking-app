@@ -1,90 +1,107 @@
-
 .timesheet-container {
-  margin: 20px 0;
+  margin: 0;
   width: 100%;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
 }
 
 .timesheet-controls {
-  padding: 16px;
-  border-bottom: 1px solid #dee2e6;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 24px;
 }
 
 .month-select {
-  padding: 8px;
-  border: 1px solid #ced4da;
+  padding: 8px 12px;
+  border: 1px solid #e9ecef;
   border-radius: 4px;
   font-size: 14px;
-  width: 200px;
+  width: 220px;
+  background: white;
+  cursor: pointer;
+  color: #495057;
+  transition: all 0.2s;
+}
+
+.month-select:hover {
+  border-color: #ced4da;
+}
+
+.month-select:focus {
+  outline: none;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
 }
 
 .week-navigation {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  margin-left: auto;
 }
 
 .nav-button {
   padding: 8px 16px;
-  border: 1px solid #ced4da;
+  border: 1px solid #e9ecef;
   border-radius: 4px;
-  background: #f8f9fa;
+  background: white;
   cursor: pointer;
   font-size: 14px;
+  color: #495057;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .nav-button:hover:not(:disabled) {
-  background: #e2e6ea;
-  border-color: #adb5bd;
+  background: #f8f9fa;
+  border-color: #ced4da;
+  color: #228be6;
 }
 
 .nav-button:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
-  background: #e9ecef;
 }
 
 .week-label {
   font-size: 14px;
   color: #495057;
-  flex: 1;
-  text-align: center;
-}
-
-.table-container {
-  overflow-x: auto;
+  font-weight: 500;
 }
 
 .timesheet-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 14px;
 }
 
 .project-column {
   position: sticky;
   left: 0;
-  background-color: #f8f9fa;
+  background-color: #f1f7fe;
   z-index: 1;
-  min-width: 200px;
-  border-right: 2px solid #dee2e6;
+  min-width: 250px;
+  padding: 12px 16px;
+  color: #495057;
+  font-weight: 600;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .day-column {
-  min-width: 80px;
+  min-width: 100px;
   text-align: center;
-  background-color: #f8f9fa;
-  white-space: pre-line;
-  padding: 8px 4px;
+  background-color: #f1f7fe;
+  padding: 12px 8px;
+  color: #495057;
   font-weight: 500;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid #e9ecef;
 }
 
 .project-name {
@@ -92,44 +109,57 @@
   left: 0;
   background-color: white;
   z-index: 1;
-  padding: 8px 12px;
-  border-right: 2px solid #dee2e6;
-  font-weight: bold;
+  padding: 12px 16px;
+  color: #495057;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f1f4;
 }
 
 .hours-cell {
-  padding: 4px;
+  padding: 0;
   text-align: center;
-  border: 1px solid #dee2e6;
+  border-bottom: 1px solid #f1f1f4;
+  background: white;
+  position: relative;
 }
 
+.hours-cell.saving {
+  background: #f8f9fa;
+}
+
+.hours-cell.error {
+  background: #fff5f5;
+}
+
+.hours-cell.error .hours-input {
+  color: #e03131;
+  border-color: #ffc9c9;
+}
 
 .hours-input {
   width: 100%;
-  min-width: 60px;
-  padding: 4px;
-  border: 1px solid #ced4da;
+  height: 100%;
+  min-width: 70px;
+  padding: 12px 8px;
+  border: 1px solid transparent;
   text-align: center;
-  background: white;
-  color: black;
+  background: transparent;
+  color: #495057;
   font-size: 14px;
-  border-radius: 4px;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
-
 
 .hours-input:hover {
-  border-color: #adb5bd;
+  background: #f8f9fa;
+  border-color: #e9ecef;
 }
-
 
 .hours-input:focus {
   outline: none;
-  border-color: #007bff;
-  background-color: #fff;
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+  background: white;
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
 }
-
 
 .hours-input::-webkit-outer-spin-button,
 .hours-input::-webkit-inner-spin-button {
@@ -141,35 +171,76 @@
   -moz-appearance: textfield;
 }
 
+.saving-indicator {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 4px;
+  background-color: #4a90e2;
+  border-radius: 50%;
+  animation: pulse 1s infinite;
+}
 
-tr:nth-child(even) {
-  background-color: #f8f9fa;
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
 }
 
 tr:hover {
-  background-color: #f0f0f0;
+  background-color: #f8f9fa;
 }
 
 tr:hover .project-name {
-  background-color: #f0f0f0;
+  background-color: #f8f9fa;
 }
 
+tr:hover .hours-input {
+  background-color: white;
+  border-color: #e9ecef;
+}
+
+@media (max-width: 1024px) {
+  .timesheet-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .week-navigation {
+    margin-left: 0;
+  }
+
+  .month-select {
+    width: 100%;
+  }
+}
 
 @media (max-width: 768px) {
-  .timesheet-container {
-    margin: 10px 0;
+  .timesheet-controls {
+    padding: 12px;
   }
 
   .project-column {
-    min-width: 150px;
+    min-width: 200px;
   }
 
   .day-column {
-    min-width: 60px;
+    min-width: 80px;
   }
 
   .hours-input {
-    max-width: 50px;
-    font-size: 12px;
+    min-width: 60px;
+    padding: 8px 4px;
   }
 }

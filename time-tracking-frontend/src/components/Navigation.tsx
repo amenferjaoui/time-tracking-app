@@ -45,30 +45,22 @@ export default function Navigation({ user, onLogout }: Props) {
             </Link>
 
             {/* Manager specific links */}
-            {(user.role === 'MANAGER' || user.role === 'ADMIN') && (
-              <>
-                <Link 
-                  to="/projects" 
-                  className={`nav-link ${isActive('/projects') ? 'active' : ''}`}
-                >
-                  Projets
-                </Link>
-                <Link 
-                  to="/team" 
-                  className={`nav-link ${isActive('/team') ? 'active' : ''}`}
-                >
-                  Équipe
-                </Link>
-              </>
+            {(user.role === 'manager' || user.role === 'admin') && (
+              <Link 
+                to="/projects" 
+                className={`nav-link ${isActive('/projects') ? 'active' : ''}`}
+              >
+                Projets
+              </Link>
             )}
 
             {/* Admin specific links */}
-            {user.role === 'ADMIN' && (
+            {user.role === 'admin' && (
               <Link 
-                to="/admin" 
-                className={`nav-link ${isActive('/admin') ? 'active' : ''}`}
+                to="/admin/users" 
+                className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
               >
-                Administration
+                Gestion des utilisateurs
               </Link>
             )}
 

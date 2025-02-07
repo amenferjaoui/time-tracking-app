@@ -11,7 +11,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'password', 'role', 'manager', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
-        read_only_fields = ('id', 'role')  # role est en lecture seule car il est déterminé par is_superuser/is_staff
+        read_only_fields = ('id',)  # role n'est plus en lecture seule
         extra_kwargs = {
             'manager': {'required': False},
             'is_superuser': {'required': False},
@@ -19,16 +19,17 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop('password', None)
         user = User(**validated_data)
-        user.set_password(password)
+        if password:
+            user.set_password(password)  # Hashage ici
         user.save()
         return user
 
     def update(self, instance, validated_data):
         if 'password' in validated_data:
             password = validated_data.pop('password')
-            instance.set_password(password)
+            instance.set_password(password)  # Hashage ici
         return super().update(instance, validated_data)
 
     def validate_manager(self, value):
@@ -39,13 +40,25 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, data):
         # Seul un superuser peut créer/modifier d'autres superusers
         request = self.context.get('request')
-        if request and data.get('is_superuser') and not request.user.is_superuser:
-            raise serializers.ValidationError("Seul un administrateur peut gérer les droits superuser")
-        
-        # Un non-staff ne peut pas devenir staff sans intervention d'un admin
-        if data.get('is_staff') and request and not request.user.is_staff:
-            raise serializers.ValidationError("Seul un staff member peut gérer les droits staff")
-            
+        if request and not request.user.is_superuser:
+            if data.get('role') == 'admin' or data.get('is_superuser'):
+                raise serializers.ValidationError("Seul un administrateur peut créer ou modifier des administrateurs")
+            if data.get('role') == 'manager' or data.get('is_staff'):
+                raise serializers.ValidationError("Seul un administrateur peut créer ou modifier des managers")
+
+        # Synchroniser role avec is_superuser et is_staff
+        role = data.get('role')
+        if role:
+            if role == 'admin':
+                data['is_superuser'] = True
+                data['is_staff'] = True
+            elif role == 'manager':
+                data['is_superuser'] = False
+                data['is_staff'] = True
+            else:  # user
+                data['is_superuser'] = False
+                data['is_staff'] = False
+
         return data
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -84,18 +97,24 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaisieTemps
         fields = ('id', 'user', 'projet', 'date', 'temps', 'description')
-        read_only_fields = ('id',)
+        read_only_fields = ('id', 'user')
+        extra_kwargs = {
+            'description': {'required': False}
+        }
 
     def validate(self, data):
         # Vérifier que l'utilisateur a accès au projet
         user = self.context['request'].user
-        if not user.is_staff and data['projet'].manager != user.manager:
-            raise serializers.ValidationError("Vous n'avez pas accès à ce projet")
+        projet = data['projet']
+        if not user.is_staff and projet.manager != user.manager:
+            # Vérifier si l'utilisateur est assigné à ce manager
+            if not user.manager or user.manager != projet.manager:
+                raise serializers.ValidationError("Vous n'avez pas accès à ce projet")
         return data
 
     def validate_temps(self, value):
-        if value <= 0 or value > 24:
-            raise serializers.ValidationError("Le temps doit être compris entre 0 et 24 heures")
+        if value not in [0, 0.5, 1]:
+            raise serializers.ValidationError("Le temps doit être 0, 0.5 (demi-journée) ou 1 (journée entière)")
         return value
 
 class CompteRenduSerializer(serializers.ModelSerializer):
