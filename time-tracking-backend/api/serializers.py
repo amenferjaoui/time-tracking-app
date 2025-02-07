@@ -19,15 +19,17 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        # Ne pas hasher le mot de passe ici car il sera hashé dans le modèle
-        user = User.objects.create(**validated_data)
+        password = validated_data.pop('password', None)
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)  # Hashage ici
+        user.save()
         return user
 
     def update(self, instance, validated_data):
-        # Pour la mise à jour, on doit quand même hasher le mot de passe car save() ne le fera pas
         if 'password' in validated_data:
             password = validated_data.pop('password')
-            instance.set_password(password)
+            instance.set_password(password)  # Hashage ici
         return super().update(instance, validated_data)
 
     def validate_manager(self, value):

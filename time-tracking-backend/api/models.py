@@ -12,16 +12,18 @@ class User(AbstractUser):
     role = models.CharField(max_length=10, choices=ROLES, default='user')
     manager = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='managed_users')
 
+    def save(self, *args, **kwargs):
+        # Synchroniser le rôle avec is_superuser et is_staff
+        if self.is_superuser:
+            self.role = 'admin'
+        elif self.is_staff:
+            self.role = 'manager'
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.username
 
-    def save(self, *args, **kwargs):
-        # Hash the password if it's not already hashed
-        if self.pk is None or not self.password.startswith(('pbkdf2_sha256$', 'bcrypt$', 'argon2')):
-            self.password = make_password(self.password)
-            
-        super().save(*args, **kwargs)
-    
+
 class Projet(models.Model):
     nom = models.CharField(max_length=255)
     description = models.TextField(blank=True)
