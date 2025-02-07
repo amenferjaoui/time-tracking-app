@@ -7,7 +7,7 @@
 // interface ProjectForm {
 //   nom: string;
 //   description: string;
-//   manager: number; 
+//   manager: number;
 // }
 
 // export default function ProjectManagement() {
@@ -18,9 +18,10 @@
 //   const [formData, setFormData] = useState<ProjectForm>({
 //     nom: "",
 //     description: "",
-//     manager: 0, // Manager sera sélectionné via un dropdown
+//     manager: 0, // Sera défini en fonction du rôle
 //   });
 //   const [userRole, setUserRole] = useState<string | null>(null);
+//   const [currentUser, setCurrentUser] = useState<{ id: number; username: string } | null>(null);
 //   const [staffUsers, setStaffUsers] = useState<{ id: number; username: string }[]>([]);
 
 //   useEffect(() => {
@@ -43,11 +44,17 @@
 //     }
 //   };
 
-//   // Récupérer le rôle de l'utilisateur connecté
+//   // Récupérer le rôle et l'ID de l'utilisateur connecté
 //   const fetchUserRole = async () => {
 //     try {
 //       const response = await authApi.getCurrentUser();
 //       setUserRole(response.data.role);
+//       setCurrentUser({ id: response.data.id, username: response.data.username });
+
+//       // Si l'utilisateur est un manager, définir automatiquement son ID comme manager
+//       if (response.data.role === "manager") {
+//         setFormData((prev) => ({ ...prev, manager: response.data.id }));
+//       }
 //     } catch (error) {
 //       console.error("Erreur lors de la récupération du rôle utilisateur.");
 //     }
@@ -69,18 +76,25 @@
 //     e.preventDefault();
 //     try {
 //       setError(null);
+
+//       const newProjectData = {
+//         ...formData,
+//         manager: userRole === "manager" ? currentUser?.id ?? 0 : formData.manager,
+//       };
+
 //       if (editingProject) {
 //         // Modification
-//         const response = await projectsApi.update(editingProject.id, formData);
+//         const response = await projectsApi.update(editingProject.id, newProjectData);
 //         setProjects((prevProjects) =>
 //           prevProjects.map((p) => (p.id === editingProject.id ? response.data : p))
 //         );
 //         setEditingProject(null);
 //       } else {
 //         // Création
-//         const response = await projectsApi.create(formData);
+//         const response = await projectsApi.create(newProjectData);
 //         setProjects((prevProjects) => [...prevProjects, response.data]);
 //       }
+
 //       setFormData({ nom: "", description: "", manager: 0 });
 //     } catch (error) {
 //       console.error(error);
@@ -147,18 +161,22 @@
 
 //           <div className="form-group">
 //             <label>Manager :</label>
-//             <select
-//               value={formData.manager}
-//               onChange={(e) => setFormData({ ...formData, manager: Number(e.target.value) })}
-//               required
-//             >
-//               <option value="0" disabled>Sélectionnez un manager</option>
-//               {staffUsers.map((user) => (
-//                 <option key={user.id} value={user.id}>
-//                   {user.username}
-//                 </option>
-//               ))}
-//             </select>
+//             {userRole === "admin" ? (
+//               <select
+//                 value={formData.manager}
+//                 onChange={(e) => setFormData({ ...formData, manager: Number(e.target.value) })}
+//                 required
+//               >
+//                 <option value="0" disabled>Sélectionnez un manager</option>
+//                 {staffUsers.map((user) => (
+//                   <option key={user.id} value={user.id}>
+//                     {user.username}
+//                   </option>
+//                 ))}
+//               </select>
+//             ) : (
+//               <p>{currentUser?.username} (vous)</p>
+//             )}
 //           </div>
 
 //           {error && <div className="error-message">{error}</div>}
@@ -217,8 +235,6 @@
 //     </div>
 //   );
 // }
-
-
 
 import { useState, useEffect } from "react";
 import { Project } from "../types";
@@ -433,7 +449,11 @@ export default function ProjectManagement() {
                 <tr key={project.id}>
                   <td>{project.nom}</td>
                   <td>{project.description}</td>
-                  <td>{staffUsers.find((user) => user.id === project.manager)?.username || "N/A"}</td>
+                  <td>
+                    {project.manager === currentUser?.id
+                      ? "Vous"
+                      : staffUsers.find((user) => user.id === project.manager)?.username || "Manager inconnu"}
+                  </td>
                   <td className="action-buttons">
                     {userRole !== "user" && (
                       <>
@@ -457,4 +477,5 @@ export default function ProjectManagement() {
     </div>
   );
 }
+
 
