@@ -105,21 +105,100 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             return SaisieTemps.objects.filter(user__manager=user)
         return SaisieTemps.objects.filter(user=user)
 
+
+
+    def create(self, request, *args, **kwargs):
+        mutable_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        mutable_data['user'] = request.user.id
+        serializer = self.get_serializer(data=mutable_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     def perform_create(self, serializer):
-        # Set the user before validation
-        serializer.initial_data['user'] = self.request.user.id
         serializer.save(user=self.request.user)
 
     @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/monthly/(?P<month>\d{4}-\d{2})')
     def monthly(self, request, user_id=None, month=None):
         try:
             year, month = map(int, month.split('-'))
-            queryset = self.get_queryset().filter(
+            
+            import calendar
+            from datetime import date, datetime
+            from django.utils import timezone
+            import logging
+
+            logger = logging.getLogger(__name__)
+
+            # Get entries for the specified month and any overflow days from adjacent months
+            from datetime import date, timedelta
+
+            # Get first day of the month
+            first_day = date(year, month, 1)
+            
+            # Get last day of the month
+            if month == 12:
+                next_month = date(year + 1, 1, 1)
+            else:
+                next_month = date(year, month + 1, 1)
+            last_day = next_month - timedelta(days=1)
+
+            # Get Monday of the first week
+            start_date = first_day - timedelta(days=first_day.weekday())
+            
+            # Get Sunday of the last week
+            end_date = last_day + timedelta(days=(6 - last_day.weekday()))
+
+            # Get all entries spanning these dates
+            queryset = SaisieTemps.objects.filter(
                 user_id=user_id,
-                date__year=year,
-                date__month=month
-            )
-            serializer = self.get_serializer(queryset, many=True)
+                date__gte=start_date,
+                date__lte=end_date
+            ).select_related('projet')  # Include project data to avoid N+1 queries
+            
+            # Get all projects for this user
+            projects = Projet.objects.filter(
+                models.Q(saisietemps__user_id=user_id) | 
+                models.Q(manager=request.user)
+            ).distinct()
+            
+            # Create a map of existing entries
+            entry_map = {}
+            for entry in queryset:
+                # Format date as YYYY-MM-DD to match frontend
+                date_str = entry.date.strftime('%Y-%m-%d')
+                key = f"{entry.projet.id}-{date_str}"
+                entry_map[key] = entry
+                logger.info(f"Found existing entry: {key}")
+            
+            # Generate entries for all dates in the range
+            entries = []
+            current_date = start_date
+            while current_date <= end_date:
+                date_str = current_date.strftime('%Y-%m-%d')
+                
+                for project in projects:
+                    key = f"{project.id}-{date_str}"
+                    logger.info(f"Processing key: {key}")
+                    
+                    if key in entry_map:
+                        logger.info(f"Using existing entry for {key}")
+                        entries.append(entry_map[key])
+                    else:
+                        logger.info(f"Creating dummy entry for {key}")
+                        # Create a dummy entry with 0 hours
+                        entries.append(SaisieTemps(
+                            user_id=user_id,
+                            projet=project,
+                            date=current_date,
+                            temps=0,
+                            description=''
+                        ))
+                
+                current_date += timedelta(days=1)
+            
+            serializer = self.get_serializer(entries, many=True)
             return Response(serializer.data)
         except (ValueError, TypeError):
             return Response(
@@ -144,11 +223,11 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             
             # Get user and time entries
             target_user = User.objects.get(id=user_id)
-            queryset = self.get_queryset().filter(
+            queryset = SaisieTemps.objects.filter(
                 user_id=user_id,
                 date__year=year,
                 date__month=month
-            )
+            ).select_related('projet')  # Include project data to avoid N+1 queries
 
             # Create PDF buffer
             buffer = BytesIO()

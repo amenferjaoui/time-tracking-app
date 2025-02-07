@@ -36,28 +36,45 @@ export default function TimeEntryTable({ userId }: Props) {
     setCurrentWeek(weekDates);
   }, [selectedDate]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [projectsRes, entriesRes] = await Promise.all([
-          projectsApi.getAll(),
-          timeEntriesApi.getMonthlyReport(
-            userId,
-            `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
-          )
-        ]);
+  const fetchTimeEntries = async () => {
+    try {
+      // Get the month of the first and last day of the week
+      const firstDayMonth = `${currentWeek[0].getFullYear()}-${String(currentWeek[0].getMonth() + 1).padStart(2, '0')}`;
+      const lastDayMonth = `${currentWeek[6].getFullYear()}-${String(currentWeek[6].getMonth() + 1).padStart(2, '0')}`;
 
-        setProjects(projectsRes.data);
+      // Fetch data for both months if the week spans across months
+      const promises = [timeEntriesApi.getMonthlyReport(userId, firstDayMonth)];
+      if (firstDayMonth !== lastDayMonth) {
+        promises.push(timeEntriesApi.getMonthlyReport(userId, lastDayMonth));
+      }
 
-        const entriesMap: TimeEntryMap = {};
-        entriesRes.data.forEach((entry: TimeEntry) => {
+      const responses = await Promise.all(promises);
+
+      // Combine entries from both months
+      const entriesMap: TimeEntryMap = {};
+      responses.forEach(response => {
+        response.data.forEach((entry: TimeEntry) => {
           const key = `${entry.projet}-${entry.date}`;
           entriesMap[key] = {
             temps: entry.temps,
             entryId: entry.id
           };
         });
-        setTimeEntries(entriesMap);
+      });
+
+      setTimeEntries(entriesMap);
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const projectsRes = await projectsApi.getAll();
+        setProjects(projectsRes.data);
+        await fetchTimeEntries();
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -66,7 +83,7 @@ export default function TimeEntryTable({ userId }: Props) {
     };
 
     fetchData();
-  }, [selectedDate, userId]);
+  }, [selectedDate, userId, currentWeek]);
 
   const handleHoursChange = async (
     projectId: number,
@@ -74,46 +91,51 @@ export default function TimeEntryTable({ userId }: Props) {
     newValue: string
   ) => {
     const hours = newValue === '' ? 0 : parseFloat(newValue);
-    // Ne permettre que 0, 0.5 ou 1
-    if (![0, 0.5, 1].includes(hours)) {
-      return;
-    }
-
     const dateStr = date.toISOString().split('T')[0];
     const key = `${projectId}-${dateStr}`;
     const existingEntry = timeEntries[key];
 
-    // Set saving state
+    // Show error if value is not 0, 0.5, or 1
+    if (![0, 0.5, 1].includes(hours)) {
+      setTimeEntries(prev => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          temps: hours,
+          error: "Seules les valeurs 0, 0.5 et 1 sont autorisées"
+        }
+      }));
+      return;
+    }
+
+    // Clear error and set saving state
     setTimeEntries(prev => ({
       ...prev,
-      [key]: { ...prev[key], saving: true, error: undefined }
+      [key]: { 
+        ...prev[key], 
+        temps: hours,
+        saving: true, 
+        error: undefined 
+      }
     }));
 
     try {
       if (hours === 0 && existingEntry?.entryId) {
         await timeEntriesApi.delete(existingEntry.entryId);
-        const newEntries = { ...timeEntries };
-        delete newEntries[key];
-        setTimeEntries(newEntries);
+        await fetchTimeEntries(); // Refresh data after deletion
       } else if (existingEntry?.entryId) {
-        const updated = await timeEntriesApi.update(existingEntry.entryId, {
+        await timeEntriesApi.update(existingEntry.entryId, {
           temps: hours
         });
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { temps: hours, entryId: updated.data.id, saving: false }
-        }));
+        await fetchTimeEntries(); // Refresh data after update
       } else if (hours > 0) {
-        const created = await timeEntriesApi.create({
+        await timeEntriesApi.create({
           date: dateStr,
           projet: projectId,
           temps: hours,
           description: ''  // Required field in the backend
         });
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { temps: hours, entryId: created.data.id, saving: false }
-        }));
+        await fetchTimeEntries(); // Refresh data after creation
       }
     } catch (error) {
       console.error("Error updating time entry:", error);
