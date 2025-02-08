@@ -32,15 +32,21 @@ export default function UserManagement({ currentUser }: Props) {
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentUser.id]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const response = await authApi.getAllUsers();
-      const users = response.data;
-      setUsers(users);
-      setPotentialManagers(users.filter(user => user.role === 'manager' || user.role === 'admin'));
+      const allUsers = response.data;
+      
+      // Si c'est un manager, on ne montre que ses utilisateurs
+      const filteredUsers = currentUser.role === 'manager' 
+        ? allUsers.filter(user => user.manager === currentUser.id || user.id === currentUser.id)
+        : allUsers;
+      
+      setUsers(filteredUsers);
+      setPotentialManagers(allUsers.filter(user => user.role === 'manager' || user.role === 'admin'));
     } catch (error) {
       console.error(error);
       setError('Failed to load users');
@@ -56,7 +62,9 @@ export default function UserManagement({ currentUser }: Props) {
       const userData = {
         ...formData,
         is_superuser: formData.role === 'admin',
-        is_staff: formData.role === 'manager' || formData.role === 'admin'
+        is_staff: formData.role === 'manager' || formData.role === 'admin',
+        // Si l'utilisateur connecté est un manager et qu'on crée un utilisateur, on force le manager
+        manager: currentUser.role === 'manager' && formData.role === 'user' ? currentUser.id : formData.manager
       };
 
       if (editingUser) {
@@ -181,18 +189,27 @@ export default function UserManagement({ currentUser }: Props) {
           {formData.role === 'user' && (
             <div className="form-group">
               <label>Manager :</label>
-              <select
-                value={formData.manager || ''}
-                onChange={(e) => setFormData({ ...formData, manager: Number(e.target.value) })}
-                required
-              >
-                <option value="">Sélectionner un manager</option>
-                {potentialManagers.map(manager => (
-                  <option key={manager.id} value={manager.id}>
-                    {manager.username} ({manager.role})
-                  </option>
-                ))}
-              </select>
+              {currentUser.role === 'manager' ? (
+                <input
+                  type="text"
+                  value={currentUser.username}
+                  disabled
+                  className="disabled-input"
+                />
+              ) : (
+                <select
+                  value={formData.manager || ''}
+                  onChange={(e) => setFormData({ ...formData, manager: Number(e.target.value) })}
+                  required
+                >
+                  <option value="">Sélectionner un manager</option>
+                  {potentialManagers.map(manager => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.username} ({manager.role})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
 

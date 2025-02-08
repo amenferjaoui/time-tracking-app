@@ -85,6 +85,17 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.disabled-input {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  border: 1px solid #e9ecef;
+}
+
+.disabled-input:hover {
+  border-color: #e9ecef;
+}
+
 .error {
   color: #e03131;
   font-size: 12px;

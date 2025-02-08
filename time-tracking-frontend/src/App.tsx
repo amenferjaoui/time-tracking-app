@@ -159,7 +159,7 @@ export default function App() {
               path="/admin/users"
               element={
                 user ? (
-                  <ProtectedRoute user={user} adminOnly>
+                  <ProtectedRoute user={user} requiredRole="manager">
                     <UserManagement currentUser={user} />
                   </ProtectedRoute>
                 ) : (

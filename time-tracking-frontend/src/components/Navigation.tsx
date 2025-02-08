@@ -54,8 +54,8 @@ export default function Navigation({ user, onLogout }: Props) {
               </Link>
             )}
 
-            {/* Admin specific links */}
-            {user.role === 'admin' && (
+            {/* Admin and Manager specific links */}
+            {(user.role === 'admin' || user.role === 'manager') && (
               <Link 
                 to="/admin/users" 
                 className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
