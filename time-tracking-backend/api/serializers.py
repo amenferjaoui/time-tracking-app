@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Projet, SaisieTemps, CompteRendu
+from django.db.models import Sum
 
 User = get_user_model()
 
@@ -151,15 +152,54 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
             'description': {'required': False}
         }
 
+    # def validate(self, data):
+    #     # Vérifier que l'utilisateur a accès au projet
+    #     user = self.context['request'].user
+    #     projet = data['projet']
+    #     if not user.is_staff and projet.manager != user.manager:
+    #         # Vérifier si l'utilisateur est assigné à ce manager
+    #         if not user.manager or user.manager != projet.manager:
+    #             raise serializers.ValidationError(
+    #                 "Vous n'avez pas accès à ce projet")
+    #     return data
+
+    from django.db.models import Sum
+
+
+class SaisieTempsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SaisieTemps
+        fields = ('id', 'user', 'projet', 'date', 'temps', 'description')
+        read_only_fields = ('id', 'user')
+        extra_kwargs = {
+            'description': {'required': False}
+        }
+
     def validate(self, data):
-        # Vérifier que l'utilisateur a accès au projet
         user = self.context['request'].user
+        date = data['date']
+        new_temps = data['temps']
         projet = data['projet']
+
+        # Vérifier que l'utilisateur a accès au projet (règle existante)
         if not user.is_staff and projet.manager != user.manager:
-            # Vérifier si l'utilisateur est assigné à ce manager
             if not user.manager or user.manager != projet.manager:
                 raise serializers.ValidationError(
-                    "Vous n'avez pas accès à ce projet")
+                    "Vous n'avez pas accès à ce projet.")
+
+        # Calculer le temps total déjà enregistré pour cet utilisateur à cette date
+        total_temps = SaisieTemps.objects.filter(
+            user=user, date=date
+        ).exclude(id=self.instance.id if self.instance else None).aggregate(
+            total=Sum('temps')
+        )['total'] or 0  # Si aucune entrée trouvée, total = 0
+
+        # Vérifier que la nouvelle saisie ne dépasse pas 1.0 jour
+        if total_temps + new_temps > 1.0:
+            raise serializers.ValidationError(
+                f"La somme totale du temps ne peut pas dépasser 1 journée pour {date}."
+            )
+
         return data
 
     def validate_temps(self, value):
