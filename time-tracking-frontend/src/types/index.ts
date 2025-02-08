@@ -14,6 +14,7 @@ export interface Project {
   nom: string;
   description?: string;
   manager: number;
+  users?: User[];
   created_at?: string;
   updated_at?: string;
 }

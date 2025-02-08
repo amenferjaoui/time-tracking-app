@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -56,8 +57,8 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser:  # Admin voit tout
             return User.objects.all()
-        elif user.is_staff:  # Manager voit ses utilisateurs gérés
-            return User.objects.filter(manager=user)
+        elif user.is_staff:  # Manager voit les admins, managers et ses utilisateurs gérés
+            return User.objects.filter(models.Q(is_staff=True) | models.Q(is_superuser=True) | models.Q(manager=user))
         return User.objects.filter(id=user.id)  # User ne voit que lui-même
 
     @action(detail=False, methods=['get'])
@@ -80,17 +81,91 @@ class ProjetViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_queryset = Projet.objects.prefetch_related('users')
+        
         if user.is_superuser:
-            return Projet.objects.all()
+            return base_queryset.all()
         elif user.is_staff:
-            return Projet.objects.filter(manager=user)
-        return Projet.objects.filter(saisietemps__user=user).distinct()
+            # Manager can see projects they manage OR are assigned to
+            return base_queryset.filter(
+                models.Q(manager=user) | models.Q(users=user)
+            ).distinct()
+        # Regular users can see projects they're assigned to
+        return base_queryset.filter(users=user).distinct()
 
     def perform_create(self, serializer):
-        if self.request.user.is_staff:
-            serializer.save(manager=self.request.user)
+        if not self.request.user.is_staff:
+            raise PermissionDenied("Only managers and admins can create projects")
+        
+        # If admin is creating the project, use the manager from the request data
+        # If manager is creating the project, use themselves as manager
+        if self.request.user.is_superuser:
+            serializer.save()  # Use manager from request data
         else:
-            serializer.save()
+            serializer.save(manager=self.request.user)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        user = self.request.user
+        
+        # Only the project manager or admin can update
+        if not user.is_superuser and instance.manager != user:
+            raise PermissionDenied("Only the project manager or admin can update this project")
+        
+        serializer.save()
+
+    @action(detail=True, methods=['post'], url_path='assign-users')
+    def assign_users(self, request, pk=None):
+        project = self.get_object()
+        user = request.user
+        
+        try:
+            # Validate user IDs
+            user_ids = request.data.get('user_ids', [])
+            if not isinstance(user_ids, list):
+                raise ValidationError("user_ids must be a list")
+            
+            # Get users to assign
+            users = User.objects.filter(id__in=user_ids)
+            if len(users) != len(user_ids):
+                raise ValidationError("Some user IDs are invalid")
+            
+            # Permission checks
+            if user.is_superuser:
+                # Admin can assign any user (including managers) to any project
+                pass
+            elif user.is_staff:
+                # Manager can only assign their managed users to their own projects
+                if project.manager != user:
+                    raise PermissionDenied("You can only assign users to your own projects")
+                
+                # Managers can't assign other managers
+                manager_users = users.filter(is_staff=True)
+                if manager_users.exists():
+                    raise ValidationError("Managers can only assign regular users to projects")
+                
+                # Verify all users are managed by this manager
+                invalid_users = users.exclude(manager=user)
+                if invalid_users.exists():
+                    usernames = ", ".join([u.username for u in invalid_users])
+                    raise PermissionDenied(f"You cannot assign these users: {usernames}")
+            else:
+                raise PermissionDenied("Only managers and admins can assign users to projects")
+            
+            # Clear existing assignments and add new ones
+            project.users.clear()
+            project.users.add(*users)
+            
+            return Response({"message": "Users assigned successfully"})
+            
+        except (ValidationError, PermissionDenied) as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            return Response(
+                {"error": f"An error occurred while assigning users: {str(e)}\n{traceback.format_exc()}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class SaisieTempsViewSet(viewsets.ModelViewSet):
     queryset = SaisieTemps.objects.all()

@@ -83,14 +83,49 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 class ProjetSerializer(serializers.ModelSerializer):
+    users = UserSerializer(many=True, read_only=True)
+    user_ids = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        queryset=User.objects.all(),
+        required=False,
+        write_only=True,
+        source='users'
+    )
+    
     class Meta:
         model = Projet
-        fields = ('id', 'nom', 'description', 'manager')
+        fields = ('id', 'nom', 'description', 'manager', 'users', 'user_ids')
         read_only_fields = ('id',)
 
     def validate_manager(self, value):
         if not value.is_staff:  # Vérifie si l'utilisateur est admin ou manager
             raise serializers.ValidationError("Seuls les administrateurs et les managers peuvent gérer des projets")
+        return value
+
+    def validate_users(self, value):
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Utilisateur non authentifié")
+
+        # Get the manager from the data or instance
+        manager = self.initial_data.get('manager') if self.instance is None else self.instance.manager
+        if isinstance(manager, str):
+            manager = User.objects.get(id=manager)
+
+        # Admin can assign any user
+        if request.user.role == 'admin':
+            return value
+
+        # Manager can only assign their own users
+        if request.user.role == 'manager':
+            if request.user.id != manager.id:
+                raise serializers.ValidationError("Vous ne pouvez pas assigner des utilisateurs à un projet que vous ne gérez pas")
+            
+            invalid_users = [user for user in value if user.manager_id != request.user.id]
+            if invalid_users:
+                usernames = ', '.join([user.username for user in invalid_users])
+                raise serializers.ValidationError(f"Vous ne pouvez pas assigner les utilisateurs suivants: {usernames}")
+
         return value
 
 class SaisieTempsSerializer(serializers.ModelSerializer):
