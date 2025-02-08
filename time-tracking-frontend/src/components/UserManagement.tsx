@@ -75,14 +75,12 @@ export default function UserManagement({ currentUser }: Props) {
         : baseData;
 
       if (editingUser) {
-        const response = await authApi.updateUser(editingUser.id, userData);
-        setUsers(users.map(u =>
-          u.id === editingUser.id ? response.data : u
-        ));
+        await authApi.updateUser(editingUser.id, userData);
+        await fetchUsers(); // Refresh both users and potential managers
         setEditingUser(null);
       } else {
-        const response = await authApi.createUser(userData);
-        setUsers([...users, response.data]);
+        await authApi.createUser(userData);
+        await fetchUsers(); // Refresh both users and potential managers
       }
       setFormData({
         username: '',
@@ -129,7 +127,7 @@ export default function UserManagement({ currentUser }: Props) {
 
     try {
       await authApi.deleteUser(id);
-      setUsers(users.filter(u => u.id !== id));
+      await fetchUsers(); // Refresh both users and potential managers lists
     } catch (error: unknown) {
       console.error(error);
       const apiError = error as ApiError;
