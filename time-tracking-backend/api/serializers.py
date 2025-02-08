@@ -104,12 +104,6 @@ class ProjetSerializer(serializers.ModelSerializer):
         fields = ('id', 'nom', 'description', 'manager', 'users', 'user_ids')
         read_only_fields = ('id',)
 
-    # def validate_manager(self, value):
-    #     if not value.is_staff:  # Vérifie si l'utilisateur est admin ou manager
-    #         raise serializers.ValidationError(
-    #             "Seuls les administrateurs et les managers peuvent gérer des projets")
-    #     return value
-
     def validate_manager(self, value):
         if not value.is_staff and not value.is_superuser:
             raise serializers.ValidationError(

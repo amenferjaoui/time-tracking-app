@@ -90,22 +90,14 @@ export default function ProjectManagement() {
 
   const fetchStaffUsers = async () => {
     try {
-      // const response = await authApi.getAllUsers();
-      // console.log('All users:', response.data);
-      // // Ne pas filtrer les utilisateurs, garder tous les managers et admins
-      // setStaffUsers(response.data);
-
       const response = await authApi.getAllUsers();
 
-      // Assurer que TypeScript comprend que response.data est une liste de User[]
       const allUsers: User[] = response.data;
 
-      // On filtre uniquement les admins et managers
       const filteredStaff = allUsers.filter(user => user.is_staff || user.is_superuser);
 
       setStaffUsers(filteredStaff);
 
-      // Log current project managers for debugging
       console.log('Current projects:', projects);
       projects.forEach(project => {
         console.log(`Project ${project.nom} manager ID:`, project.manager);
