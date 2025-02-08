@@ -28,6 +28,27 @@ class Projet(models.Model):
     nom = models.CharField(max_length=255)
     description = models.TextField(blank=True)
     manager = models.ForeignKey(User, on_delete=models.CASCADE, related_name='projets')
+    users = models.ManyToManyField(User, related_name='assigned_projects', blank=True)
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        
+        # Check if manager is staff (manager) or superuser (admin)
+        if not (self.manager.is_staff or self.manager.is_superuser):
+            raise ValidationError('Only managers and admins can manage projects')
+        
+        # For existing projects, check if manager is being changed
+        if self.pk:
+            old_project = Projet.objects.get(pk=self.pk)
+            if old_project.manager != self.manager and not self.manager.is_superuser:
+                # Check if the new manager already has a project
+                existing_project = Projet.objects.filter(manager=self.manager).exclude(pk=self.pk).exists()
+                if existing_project:
+                    raise ValidationError('A manager cannot manage multiple projects')
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nom

@@ -4,7 +4,7 @@ import { TimeEntry, Project, User, AuthResponse, RefreshResponse } from '../type
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Create axios instance
-const api = axios.create({
+const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -12,7 +12,7 @@ const api = axios.create({
 });
 
 // Add token to requests
-api.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
     if (!config.headers) {
@@ -24,7 +24,7 @@ api.interceptors.request.use((config) => {
 });
 
 // Handle token refresh
-api.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
@@ -35,13 +35,13 @@ api.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const response = await api.post<RefreshResponse>('/auth/refresh/', {
+          const response = await axiosInstance.post<RefreshResponse>('/auth/refresh/', {
             refresh: refreshToken,
           });
 
           localStorage.setItem('access_token', response.data.access);
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
-          return api(originalRequest);
+          return axiosInstance(originalRequest);
         } catch {
           // Refresh token expired, logout user
           authApi.logout();
@@ -54,61 +54,67 @@ api.interceptors.response.use(
   }
 );
 
-export const timeEntriesApi = {
+const timeEntriesApi = {
   getAssignedUsers: async (managerId: number) => {
-    const response = await api.get<User[]>(`/users/?manager=${managerId}`);
+    const response = await axiosInstance.get<User[]>(`/users/?manager=${managerId}`);
     return response;
   },
   exportMonthlyReportPDF: async (userId: number, month: string) => {
-    const response = await api.get<Blob>(`/saisie-temps/${userId}/report/${month}/`, {
+    const response = await axiosInstance.get<Blob>(`/saisie-temps/${userId}/report/${month}/`, {
       responseType: 'blob'
     });
     return response;
   },
   getAll: async () => {
-    const response = await api.get<TimeEntry[]>('/saisie-temps/');
+    const response = await axiosInstance.get<TimeEntry[]>('/saisie-temps/');
     return response;
   },
   create: async (entry: Omit<TimeEntry, 'id' | 'created_at' | 'updated_at'>) => {
-    const response = await api.post<TimeEntry>('/saisie-temps/', entry);
+    const response = await axiosInstance.post<TimeEntry>('/saisie-temps/', entry);
     return response;
   },
   update: async (id: number, entry: Partial<TimeEntry>) => {
-    const response = await api.patch<TimeEntry>(`/saisie-temps/${id}/`, entry);
+    const response = await axiosInstance.patch<TimeEntry>(`/saisie-temps/${id}/`, entry);
     return response;
   },
   delete: async (id: number) => {
-    const response = await api.delete(`/saisie-temps/${id}/`);
+    const response = await axiosInstance.delete(`/saisie-temps/${id}/`);
     return response;
   },
   getMonthlyReport: async (userId: number, month: string) => {
-    const response = await api.get<TimeEntry[]>(`/saisie-temps/${userId}/monthly/${month}/`);
+    const response = await axiosInstance.get<TimeEntry[]>(`/saisie-temps/${userId}/monthly/${month}/`);
     return response;
   },
 };
 
-export const projectsApi = {
+const projectsApi = {
   getAll: async () => {
-    const response = await api.get<Project[]>('/projets/');
+    const response = await axiosInstance.get<Project[]>('/projets/');
     return response;
   },
   create: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
-    const response = await api.post<Project>('/projets/', project);
+    const response = await axiosInstance.post<Project>('/projets/', project);
     return response;
   },
   update: async (id: number, project: Partial<Project>) => {
-    const response = await api.patch<Project>(`/projets/${id}/`, project);
+    const response = await axiosInstance.patch<Project>(`/projets/${id}/`, project);
     return response;
   },
   delete: async (id: number) => {
-    const response = await api.delete(`/projets/${id}/`);
+    const response = await axiosInstance.delete(`/projets/${id}/`);
     return response;
   },
+  assignUsers: async (projectId: number, userIds: number[]) => {
+    const response = await axiosInstance.post<{message: string}>(`/projets/${projectId}/assign-users/`, {
+      user_ids: userIds
+    });
+    return response;
+  }
 };
 
-export const authApi = {
+const authApi = {
   login: async (username: string, password: string) => {
-    const response = await api.post<AuthResponse>('/auth/login/', {
+    const response = await axiosInstance.post<AuthResponse>('/auth/login/', {
       username,
       password,
     });
@@ -131,37 +137,40 @@ export const authApi = {
     localStorage.removeItem('user');
   },
   getCurrentUser: async () => {
-    const response = await api.get<User>('/users/me/');
+    const response = await axiosInstance.get<User>('/users/me/');
     return response;
   },
   getAllUsers: async () => {
-    const response = await api.get<User[]>('/users/');
+    const response = await axiosInstance.get<User[]>('/users/');
     return response;
   },
   createUser: async (userData: Omit<User, 'id' | 'created_at' | 'updated_at'>) => {
-    const response = await api.post<User>('/users/', userData);
+    const response = await axiosInstance.post<User>('/users/', userData);
     return response;
   },
   updateUser: async (id: number, userData: Partial<User>) => {
-    const response = await api.patch<User>(`/users/${id}/`, userData);
+    const response = await axiosInstance.patch<User>(`/users/${id}/`, userData);
     return response;
   },
   deleteUser: async (id: number) => {
-    const response = await api.delete(`/users/${id}/`);
+    const response = await axiosInstance.delete(`/users/${id}/`);
     return response;
   },
   updateUserRole: async (id: number, role: User['role']) => {
-    const response = await api.patch<User>(`/users/${id}/`, { role });
+    const response = await axiosInstance.patch<User>(`/users/${id}/`, { role });
     return response;
   },
   updateUserManager: async (id: number, manager: number) => {
-    const response = await api.patch<User>(`/users/${id}/`, { manager });
+    const response = await axiosInstance.patch<User>(`/users/${id}/`, { manager });
     return response;
   },
 };
 
-export default {
+const api = {
   timeEntriesApi,
   projectsApi,
   authApi
 };
+
+export { timeEntriesApi, projectsApi, authApi };
+export default api;

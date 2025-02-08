@@ -5,12 +5,14 @@ from .models import Projet, SaisieTemps, CompteRendu
 
 User = get_user_model()
 
+
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    
+
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'password', 'role', 'manager', 'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
+        fields = ('id', 'username', 'email', 'password', 'role', 'manager',
+                  'first_name', 'last_name', 'is_active', 'is_staff', 'is_superuser')
         read_only_fields = ('id',)  # role n'est plus en lecture seule
         extra_kwargs = {
             'manager': {'required': False},
@@ -34,7 +36,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate_manager(self, value):
         if value and not value.is_staff:
-            raise serializers.ValidationError("Le manager assigné doit être un staff member (manager ou admin)")
+            raise serializers.ValidationError(
+                "Le manager assigné doit être un staff member (manager ou admin)")
         return value
 
     def validate(self, data):
@@ -42,9 +45,11 @@ class UserSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and not request.user.is_superuser:
             if data.get('role') == 'admin' or data.get('is_superuser'):
-                raise serializers.ValidationError("Seul un administrateur peut créer ou modifier des administrateurs")
+                raise serializers.ValidationError(
+                    "Seul un administrateur peut créer ou modifier des administrateurs")
             if data.get('role') == 'manager' or data.get('is_staff'):
-                raise serializers.ValidationError("Seul un administrateur peut créer ou modifier des managers")
+                raise serializers.ValidationError(
+                    "Seul un administrateur peut créer ou modifier des managers")
 
         # Synchroniser role avec is_superuser et is_staff
         role = data.get('role')
@@ -60,6 +65,7 @@ class UserSerializer(serializers.ModelSerializer):
                 data['is_staff'] = False
 
         return data
+
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -82,16 +88,59 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['is_staff'] = self.user.is_staff
         return data
 
+
 class ProjetSerializer(serializers.ModelSerializer):
+    users = UserSerializer(many=True, read_only=True)
+    user_ids = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+        required=False,
+        write_only=True,
+        source='users'
+    )
+
     class Meta:
         model = Projet
-        fields = ('id', 'nom', 'description', 'manager')
+        fields = ('id', 'nom', 'description', 'manager', 'users', 'user_ids')
         read_only_fields = ('id',)
 
     def validate_manager(self, value):
-        if not value.is_staff:  # Vérifie si l'utilisateur est admin ou manager
-            raise serializers.ValidationError("Seuls les administrateurs et les managers peuvent gérer des projets")
+        if not value.is_staff and not value.is_superuser:
+            raise serializers.ValidationError(
+                "Seuls les administrateurs et les managers peuvent être managers d'un projet.")
         return value
+
+    def validate_users(self, value):
+        request = self.context.get('request')
+        if not request or not request.user:
+            raise serializers.ValidationError("Utilisateur non authentifié")
+
+        # Get the manager from the data or instance
+        manager = self.initial_data.get(
+            'manager') if self.instance is None else self.instance.manager
+        if isinstance(manager, str):
+            manager = User.objects.get(id=manager)
+
+        # Admin can assign any user
+        if request.user.role == 'admin':
+            return value
+
+        # Manager can only assign their own users
+        if request.user.role == 'manager':
+            if request.user.id != manager.id:
+                raise serializers.ValidationError(
+                    "Vous ne pouvez pas assigner des utilisateurs à un projet que vous ne gérez pas")
+
+            invalid_users = [
+                user for user in value if user.manager_id != request.user.id]
+            if invalid_users:
+                usernames = ', '.join(
+                    [user.username for user in invalid_users])
+                raise serializers.ValidationError(
+                    f"Vous ne pouvez pas assigner les utilisateurs suivants: {usernames}")
+
+        return value
+
 
 class SaisieTempsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -109,13 +158,16 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
         if not user.is_staff and projet.manager != user.manager:
             # Vérifier si l'utilisateur est assigné à ce manager
             if not user.manager or user.manager != projet.manager:
-                raise serializers.ValidationError("Vous n'avez pas accès à ce projet")
+                raise serializers.ValidationError(
+                    "Vous n'avez pas accès à ce projet")
         return data
 
     def validate_temps(self, value):
         if value not in [0, 0.5, 1]:
-            raise serializers.ValidationError("Le temps doit être 0, 0.5 (demi-journée) ou 1 (journée entière)")
+            raise serializers.ValidationError(
+                "Le temps doit être 0, 0.5 (demi-journée) ou 1 (journée entière)")
         return value
+
 
 class CompteRenduSerializer(serializers.ModelSerializer):
     class Meta:
@@ -127,5 +179,6 @@ class CompteRenduSerializer(serializers.ModelSerializer):
         # Vérifier que l'utilisateur a le droit de créer/modifier ce compte rendu
         user = self.context['request'].user
         if not user.is_staff and data['user'] != user:
-            raise serializers.ValidationError("Vous ne pouvez pas créer/modifier le compte rendu d'un autre utilisateur")
+            raise serializers.ValidationError(
+                "Vous ne pouvez pas créer/modifier le compte rendu d'un autre utilisateur")
         return data

@@ -1,246 +1,171 @@
-.timesheet-container {
-  margin: 0;
-  width: 100%;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+.table-container {
   overflow-x: auto;
+  margin: 20px 0;
 }
 
-.timesheet-controls {
-  padding: 16px 24px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.month-select {
-  padding: 8px 12px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  font-size: 14px;
-  width: 220px;
-  background: white;
-  cursor: pointer;
-  color: #495057;
-  transition: all 0.2s;
-}
-
-.month-select:hover {
-  border-color: #ced4da;
-}
-
-.month-select:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
-}
-
-.week-navigation {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-left: auto;
-}
-
-.nav-button {
-  padding: 8px 16px;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  font-size: 14px;
-  color: #495057;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-button:hover:not(:disabled) {
-  background: #f8f9fa;
-  border-color: #ced4da;
-  color: #228be6;
-}
-
-.nav-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.week-label {
-  font-size: 14px;
-  color: #495057;
-  font-weight: 500;
-}
-
-.timesheet-table {
+table {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 14px;
-}
-
-.project-column {
-  position: sticky;
-  left: 0;
-  background-color: #f1f7fe;
-  z-index: 1;
-  min-width: 250px;
-  padding: 12px 16px;
-  color: #495057;
-  font-weight: 600;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.day-column {
-  min-width: 100px;
-  text-align: center;
-  background-color: #f1f7fe;
-  padding: 12px 8px;
-  color: #495057;
-  font-weight: 500;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.project-name {
-  position: sticky;
-  left: 0;
+  border-collapse: collapse;
   background-color: white;
-  z-index: 1;
-  padding: 12px 16px;
-  color: #495057;
-  font-weight: 500;
-  border-bottom: 1px solid #f1f1f4;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.hours-cell {
-  padding: 0;
-  text-align: center;
-  border-bottom: 1px solid #f1f1f4;
-  background: white;
-  position: relative;
+th,
+td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
 }
 
-.hours-cell.saving {
-  background: #f8f9fa;
-}
-
-.hours-cell.error {
-  background: #fff5f5;
-}
-
-.hours-cell.error .hours-input {
-  color: #e03131;
-  border-color: #ffc9c9;
-}
-
-.hours-input {
-  width: 100%;
-  height: 100%;
-  min-width: 70px;
-  padding: 12px 8px;
-  border: 1px solid transparent;
-  text-align: center;
-  background: transparent;
-  color: #495057;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.hours-input:hover {
-  background: #f8f9fa;
-  border-color: #e9ecef;
-}
-
-.hours-input:focus {
-  outline: none;
-  background: white;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
-}
-
-.hours-input::-webkit-outer-spin-button,
-.hours-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.hours-input[type=number] {
-  -moz-appearance: textfield;
-}
-
-.saving-indicator {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 4px;
-  height: 4px;
-  background-color: #4a90e2;
-  border-radius: 50%;
-  animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.8);
-    opacity: 0.5;
-  }
+th {
+  background-color: #f5f5f5;
+  font-weight: 600;
 }
 
 tr:hover {
-  background-color: #f8f9fa;
+  background-color: #f9f9f9;
 }
 
-tr:hover .project-name {
-  background-color: #f8f9fa;
+.action-buttons {
+  display: flex;
+  gap: 8px;
 }
 
-tr:hover .hours-input {
-  background-color: white;
-  border-color: #e9ecef;
+.edit-button,
+.delete-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
-@media (max-width: 1024px) {
-  .timesheet-controls {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-
-  .week-navigation {
-    margin-left: 0;
-  }
-
-  .month-select {
-    width: 100%;
-  }
+.edit-button {
+  background-color: #4CAF50;
+  color: white;
 }
 
-@media (max-width: 768px) {
-  .timesheet-controls {
-    padding: 12px;
-  }
+.edit-button:hover {
+  background-color: #45a049;
+}
 
-  .project-column {
-    min-width: 200px;
-  }
+.delete-button {
+  background-color: #f44336;
+  color: white;
+}
 
-  .day-column {
-    min-width: 80px;
-  }
+.delete-button:hover {
+  background-color: #da190b;
+}
 
-  .hours-input {
-    min-width: 60px;
-    padding: 8px 4px;
-  }
+.no-entries {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
+
+
+.user-assignment {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: auto;
+}
+
+.user-assignment-section {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.available-users,
+.assigned-users {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.available-users h4,
+.assigned-users h4 {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.user-select {
+  width: 100%;
+  height: 150px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  overflow-y: auto;
+  font-size: 14px;
+  transition: all 0.3s ease-in-out;
+}
+
+.user-select:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+.assign-button,
+.remove-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+.assign-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.assign-button:hover {
+  background-color: #218838;
+}
+
+.remove-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.remove-button:hover {
+  background-color: #c82333;
+}
+
+.assign-button:disabled,
+.remove-button:disabled {
+  background-color: #ddd;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.error-message {
+  text-align: center;
+  font-size: 14px;
+  color: #dc3545;
+  margin-top: 8px;
+  background: #fff5f5;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ffb3b3;
 }
