@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User } from '../types';
+import { User, ApiError } from '../types';
 import { authApi } from '../services/api';
 import '../styles/form.css';
 import '../styles/table.css';
@@ -59,13 +59,20 @@ export default function UserManagement({ currentUser }: Props) {
     e.preventDefault();
     try {
       setError(null);
-      const userData = {
-        ...formData,
+      // Prepare base data
+      const baseData = {
+        username: formData.username,
+        email: formData.email,
+        role: formData.role,
         is_superuser: formData.role === 'admin',
         is_staff: formData.role === 'manager' || formData.role === 'admin',
-        // Si l'utilisateur connecté est un manager et qu'on crée un utilisateur, on force le manager
         manager: currentUser.role === 'manager' && formData.role === 'user' ? currentUser.id : formData.manager
       };
+
+      // Add password only if it's not empty or if creating new user
+      const userData = !editingUser || formData.password
+        ? { ...baseData, password: formData.password }
+        : baseData;
 
       if (editingUser) {
         const response = await authApi.updateUser(editingUser.id, userData);
@@ -82,9 +89,26 @@ export default function UserManagement({ currentUser }: Props) {
         password: '',
         role: 'user'
       });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setError('Failed to save user');
+      const apiError = error as ApiError;
+      if (apiError.response?.data) {
+        const data = apiError.response.data;
+        if (typeof data === 'object' && data !== null) {
+          const errorMessage = Object.entries(data)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('\n');
+          setError(errorMessage);
+        } else if (data) {
+          setError(data.toString());
+        } else {
+          setError('Failed to save user');
+        }
+      } else if (apiError.message) {
+        setError(apiError.message);
+      } else {
+        setError('Failed to save user');
+      }
     }
   };
 
@@ -106,9 +130,26 @@ export default function UserManagement({ currentUser }: Props) {
     try {
       await authApi.deleteUser(id);
       setUsers(users.filter(u => u.id !== id));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(error);
-      setError('Failed to delete user');
+      const apiError = error as ApiError;
+      if (apiError.response?.data) {
+        const data = apiError.response.data;
+        if (typeof data === 'string') {
+          setError(data);
+        } else if (typeof data === 'object' && data !== null) {
+          const errorMessage = Object.entries(data)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join('\n');
+          setError(errorMessage);
+        } else {
+          setError('Failed to delete user');
+        }
+      } else if (apiError.message) {
+        setError(apiError.message);
+      } else {
+        setError('Failed to delete user');
+      }
     }
   };
 
