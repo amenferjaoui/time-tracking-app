@@ -22,7 +22,7 @@ export default function ProjectManagement() {
   });
   const [userRole, setUserRole] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<{ id: number; username: string } | null>(null);
-  const [staffUsers, setStaffUsers] = useState<{ id: number; username: string }[]>([]);
+  const [staffUsers, setStaffUsers] = useState<User[]>([]);
   const [regularUsers, setRegularUsers] = useState<User[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<{ [key: string]: number[] }>({});
   const [assignError, setAssignError] = useState<string | null>(null);
@@ -50,7 +50,7 @@ export default function ProjectManagement() {
       // Ensure each project has a users array, even if empty
       // Log la réponse pour debug
       console.log('Projects response:', response.data);
-      
+
       // S'assurer que chaque projet a un tableau users valide
       const projectsWithUsers = response.data.map(project => {
         console.log('Project users:', project.id, project.users);
@@ -59,9 +59,9 @@ export default function ProjectManagement() {
           users: Array.isArray(project.users) ? project.users : []
         };
       });
-      
+
       setProjects(projectsWithUsers);
-      
+
       // Rafraîchir les utilisateurs après avoir chargé les projets
       if (userRole) {
         await fetchRegularUsers();
@@ -90,11 +90,21 @@ export default function ProjectManagement() {
 
   const fetchStaffUsers = async () => {
     try {
+      // const response = await authApi.getAllUsers();
+      // console.log('All users:', response.data);
+      // // Ne pas filtrer les utilisateurs, garder tous les managers et admins
+      // setStaffUsers(response.data);
+
       const response = await authApi.getAllUsers();
-      console.log('All users:', response.data);
-      // Ne pas filtrer les utilisateurs, garder tous les managers et admins
-      setStaffUsers(response.data);
-      
+
+      // Assurer que TypeScript comprend que response.data est une liste de User[]
+      const allUsers: User[] = response.data;
+
+      // On filtre uniquement les admins et managers
+      const filteredStaff = allUsers.filter(user => user.is_staff || user.is_superuser);
+
+      setStaffUsers(filteredStaff);
+
       // Log current project managers for debugging
       console.log('Current projects:', projects);
       projects.forEach(project => {
@@ -112,7 +122,7 @@ export default function ProjectManagement() {
       setLoading(prev => ({ ...prev, users: true }));
       const response = await authApi.getAllUsers();
       const allUsers = response.data;
-      
+
       // Filter users based on role permissions only
       const filteredUsers: User[] = allUsers.filter((user: User) => {
         if (userRole === 'admin') {
@@ -122,7 +132,7 @@ export default function ProjectManagement() {
         }
         return false;
       });
-      
+
       setRegularUsers(filteredUsers);
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs.");
@@ -136,26 +146,26 @@ export default function ProjectManagement() {
     try {
       setAssignError(null);
       await projectsApi.assignUsers(projectId, selectedUserIds);
-      
+
       // Clear selections
       setSelectedUsers(prev => ({
         ...prev,
         [projectId.toString()]: [],
         [`remove-${projectId}`]: []
       }));
-      
+
       // Update the project in state with new users array
       // Récupérer les utilisateurs complets pour les IDs sélectionnés
       const selectedUsers = regularUsers.filter(user => selectedUserIds.includes(user.id));
-      
-      setProjects(prevProjects => 
-        prevProjects.map(p => 
-          p.id === projectId 
+
+      setProjects(prevProjects =>
+        prevProjects.map(p =>
+          p.id === projectId
             ? { ...p, users: selectedUsers }
             : p
         )
       );
-      
+
     } catch (error: any) {
       console.error(error);
       const errorMessage = error.response?.data?.error || "Erreur lors de l'assignation des utilisateurs.";
@@ -254,11 +264,12 @@ export default function ProjectManagement() {
                 required
               >
                 <option value="0" disabled>Sélectionnez un manager</option>
-                {staffUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.username}
-                  </option>
-                ))}
+                {staffUsers.filter(user => user.is_staff || user.is_superuser)
+                  .map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.username}
+                    </option>
+                  ))}
               </select>
             ) : (
               <p>{currentUser?.username} (vous)</p>
@@ -390,10 +401,10 @@ export default function ProjectManagement() {
                         {userRole === "user" && project.users?.some(u => u.id === (currentUser?.id || 0))
                           ? "Vous êtes assigné"
                           : userRole === "user"
-                          ? "Non assigné"
-                          : project.users && project.users.length > 0
-                          ? project.users?.map(u => u.username).join(', ')
-                          : "Aucun utilisateur assigné"}
+                            ? "Non assigné"
+                            : project.users && project.users.length > 0
+                              ? project.users?.map(u => u.username).join(', ')
+                              : "Aucun utilisateur assigné"}
                       </div>
                     )}
                   </td>
