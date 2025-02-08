@@ -10,7 +10,8 @@ table {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-th, td {
+th,
+td {
   padding: 12px;
   text-align: left;
   border-bottom: 1px solid #ddd;
@@ -30,7 +31,8 @@ tr:hover {
   gap: 8px;
 }
 
-.edit-button, .delete-button {
+.edit-button,
+.delete-button {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
@@ -64,7 +66,7 @@ tr:hover {
 }
 
 /* User Assignment Styles */
-.user-assignment {
+/* .user-assignment {
   padding: 10px;
   border-radius: 4px;
   background-color: #f8f9fa;
@@ -138,4 +140,117 @@ tr:hover {
   color: #dc3545;
   font-size: 14px;
   margin-top: 8px;
+} */
+
+/* Conteneur principal de l'assignation */
+.user-assignment {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: auto;
+}
+
+/* Section contenant les utilisateurs disponibles et assignés */
+.user-assignment-section {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+/* Conteneur pour chaque liste */
+.available-users,
+.assigned-users {
+  flex: 1;
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Titres */
+.available-users h4,
+.assigned-users h4 {
+  text-align: center;
+  font-size: 16px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+/* Liste des utilisateurs */
+.user-select {
+  width: 100%;
+  height: 150px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background: #fff;
+  overflow-y: auto;
+  font-size: 14px;
+  transition: all 0.3s ease-in-out;
+}
+
+/* Effet au focus */
+.user-select:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
+}
+
+/* Boutons d'action */
+.assign-button,
+.remove-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease-in-out;
+}
+
+.assign-button {
+  background-color: #28a745;
+  color: white;
+}
+
+.assign-button:hover {
+  background-color: #218838;
+}
+
+.remove-button {
+  background-color: #dc3545;
+  color: white;
+}
+
+.remove-button:hover {
+  background-color: #c82333;
+}
+
+/* Désactiver les boutons si aucune sélection */
+.assign-button:disabled,
+.remove-button:disabled {
+  background-color: #ddd;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Message d'erreur */
+.error-message {
+  text-align: center;
+  font-size: 14px;
+  color: #dc3545;
+  margin-top: 8px;
+  background: #fff5f5;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ffb3b3;
 }
