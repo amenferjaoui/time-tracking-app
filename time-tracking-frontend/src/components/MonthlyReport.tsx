@@ -34,8 +34,14 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
         try {
           const response = await timeEntriesApi.getAssignedUsers(user.id);
           // Filter out the current user from assigned users to avoid duplicate
-          const filteredUsers = response.data.filter(assignedUser => assignedUser.id !== user.id);
-          setAssignedUsers(filteredUsers);
+          // if the user is a manager, we don't want to show them in the list , if he is admin we want to show all users
+          if (user.role === 'admin') {
+            const filteredUsers = response.data.filter(assignedUser => assignedUser.id !== user.id);
+            setAssignedUsers(filteredUsers);
+          } else {
+            const filteredUsers = response.data.filter(assignedUser => !assignedUser.is_staff);
+            setAssignedUsers(filteredUsers);
+          }
         } catch (error) {
           console.error(error);
           setError("Échec du chargement des utilisateurs assignés.");

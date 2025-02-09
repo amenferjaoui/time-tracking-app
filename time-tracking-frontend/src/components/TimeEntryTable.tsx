@@ -22,7 +22,13 @@ export default function TimeEntryTable({ user }: Props) {
       const fetchAssignedUsers = async () => {
         try {
           const response = await timeEntriesApi.getAssignedUsers(user.id);
-          setAssignedUsers(response.data);
+          // Filter out the current user from assigned users to avoid duplicate
+          if (user.role === 'admin') {
+            setAssignedUsers(response.data);
+          } else {
+          const filteredUsers = response.data.filter(assignedUser => !assignedUser.is_staff);
+          setAssignedUsers(filteredUsers);
+          }
         } catch (error) {
           console.error(error);
           setError("Échec du chargement des utilisateurs assignés.");

@@ -67,13 +67,13 @@ class UserViewSet(viewsets.ModelViewSet):
 
         elif user.is_staff:
             # For managers, return:
-            # 1. All users with role 'manager' or 'admin' (for project manager display)
+            # 1. All managers (users with is_staff=True) for project manager display
             # 2. Their assigned users
             # 3. The managers of projects they're assigned to
             return User.objects.filter(
-                models.Q(role__in=['manager', 'admin']) |  # All managers/admins
+                models.Q(is_staff=True) |  # All managers
                 models.Q(manager=user) |  # Their assigned users
-                models.Q(projet__users=user)  # Managers of projects they're assigned to
+                models.Q(id__in=Projet.objects.filter(users=user).values('manager'))  # Get managers of projects where user is assigned
             ).distinct()
 
         return User.objects.filter(id=user.id)
