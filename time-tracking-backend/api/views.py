@@ -174,11 +174,19 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_queryset = SaisieTemps.objects.select_related('user', 'projet')
+        
+        # For monthly and report actions, managers can see their managed users' entries
+        if self.action in ['monthly', 'report'] and user.is_staff:
+            return base_queryset.filter(
+                models.Q(user__manager=user) |  # Users they manage
+                models.Q(user=user)             # Their own entries
+            )
+        
+        # For regular CRUD operations (create, update, delete), users (including managers) only operate on their own entries
         if user.is_superuser:
-            return SaisieTemps.objects.all()
-        elif user.is_staff:
-            return SaisieTemps.objects.filter(user__manager=user)
-        return SaisieTemps.objects.filter(user=user)
+            return base_queryset.all()
+        return base_queryset.filter(user=user)
 
 
 
