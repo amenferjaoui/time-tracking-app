@@ -13,24 +13,28 @@ from .serializers import (
 
 User = get_user_model()
 
+
 class IsAdminOrManagerForUserCreation(permissions.BasePermission):
     def has_permission(self, request, view):
         if view.action == 'create':
             # Pour la création d'utilisateur, vérifier si c'est un admin ou un manager
             return (
-                (request.user and request.user.is_authenticated and 
+                (request.user and request.user.is_authenticated and
                  (request.user.is_superuser or request.user.is_staff)) or
                 not User.objects.filter(is_superuser=True).exists()
             )
         return request.user and request.user.is_superuser
 
+
 class IsManagerUser(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_staff and not request.user.is_superuser
 
+
 class IsManagerOrAdmin(permissions.BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_staff
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -39,7 +43,8 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            return [IsAdminOrManagerForUserCreation()]  # Allow both admin and manager to create users
+            # Allow both admin and manager to create users
+            return [IsAdminOrManagerForUserCreation()]
         elif self.action == 'destroy':
             return [permissions.IsAuthenticated(), IsAdminOrManagerForUserCreation()]
         elif self.action in ['update', 'partial_update']:
@@ -47,27 +52,46 @@ class UserViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer = self.get_serializer(
+            data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     if user.is_superuser:  # Admin voit tout
+    #         return User.objects.all()
+    #     elif user.is_staff:  # Manager voit les admins, managers et ses utilisateurs gérés
+    #         return User.objects.filter(models.Q(is_staff=True) | models.Q(is_superuser=True) | models.Q(manager=user))
+    #     return User.objects.filter(id=user.id)  # User ne voit que lui-même
+
     def get_queryset(self):
         user = self.request.user
-        if user.is_superuser:  # Admin voit tout
+
+        if user.is_superuser:
+            # ✅ L'admin voit tous les utilisateurs
             return User.objects.all()
-        elif user.is_staff:  # Manager voit les admins, managers et ses utilisateurs gérés
-            return User.objects.filter(models.Q(is_staff=True) | models.Q(is_superuser=True) | models.Q(manager=user))
-        return User.objects.filter(id=user.id)  # User ne voit que lui-même
+
+        elif user.is_staff:
+            # ✅ Un manager voit seulement :
+            # - Lui-même
+            # - Les utilisateurs qui lui sont rattachés
+            return User.objects.filter(models.Q(id=user.id) | models.Q(manager=user))
+
+    # ✅ Un utilisateur classique ne voit que lui-même
+        return User.objects.filter(id=user.id)
 
     @action(detail=False, methods=['get'])
     def me(self, request):
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
 
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
 
 class ProjetViewSet(viewsets.ModelViewSet):
     queryset = Projet.objects.all()
@@ -82,7 +106,7 @@ class ProjetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base_queryset = Projet.objects.prefetch_related('users')
-        
+
         if user.is_superuser:
             return base_queryset.all()
         elif user.is_staff:
@@ -95,8 +119,9 @@ class ProjetViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         if not self.request.user.is_staff:
-            raise PermissionDenied("Only managers and admins can create projects")
-        
+            raise PermissionDenied(
+                "Only managers and admins can create projects")
+
         # If admin is creating the project, use the manager from the request data
         # If manager is creating the project, use themselves as manager
         if self.request.user.is_superuser:
@@ -107,29 +132,30 @@ class ProjetViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         instance = serializer.instance
         user = self.request.user
-        
+
         # Only the project manager or admin can update
         if not user.is_superuser and instance.manager != user:
-            raise PermissionDenied("Only the project manager or admin can update this project")
-        
+            raise PermissionDenied(
+                "Only the project manager or admin can update this project")
+
         serializer.save()
 
     @action(detail=True, methods=['post'], url_path='assign-users')
     def assign_users(self, request, pk=None):
         project = self.get_object()
         user = request.user
-        
+
         try:
             # Validate user IDs
             user_ids = request.data.get('user_ids', [])
             if not isinstance(user_ids, list):
                 raise ValidationError("user_ids must be a list")
-            
+
             # Get users to assign
             users = User.objects.filter(id__in=user_ids)
             if len(users) != len(user_ids):
                 raise ValidationError("Some user IDs are invalid")
-            
+
             # Permission checks
             if user.is_superuser:
                 # Admin can assign any user (including managers) to any project
@@ -137,27 +163,31 @@ class ProjetViewSet(viewsets.ModelViewSet):
             elif user.is_staff:
                 # Manager can only assign their managed users to their own projects
                 if project.manager != user:
-                    raise PermissionDenied("You can only assign users to your own projects")
-                
+                    raise PermissionDenied(
+                        "You can only assign users to your own projects")
+
                 # Managers can't assign other managers
                 manager_users = users.filter(is_staff=True)
                 if manager_users.exists():
-                    raise ValidationError("Managers can only assign regular users to projects")
-                
+                    raise ValidationError(
+                        "Managers can only assign regular users to projects")
+
                 # Verify all users are managed by this manager
                 invalid_users = users.exclude(manager=user)
                 if invalid_users.exists():
                     usernames = ", ".join([u.username for u in invalid_users])
-                    raise PermissionDenied(f"You cannot assign these users: {usernames}")
+                    raise PermissionDenied(
+                        f"You cannot assign these users: {usernames}")
             else:
-                raise PermissionDenied("Only managers and admins can assign users to projects")
-            
+                raise PermissionDenied(
+                    "Only managers and admins can assign users to projects")
+
             # Clear existing assignments and add new ones
             project.users.clear()
             project.users.add(*users)
-            
+
             return Response({"message": "Users assigned successfully"})
-            
+
         except (ValidationError, PermissionDenied) as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
@@ -167,31 +197,51 @@ class ProjetViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
 class SaisieTempsViewSet(viewsets.ModelViewSet):
     queryset = SaisieTemps.objects.all()
     serializer_class = SaisieTempsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    # def get_queryset(self):
+    #     user = self.request.user
+    #     base_queryset = SaisieTemps.objects.select_related('user', 'projet')
+
+    #     # For monthly and report actions, managers can see their managed users' entries
+    #     if self.action in ['monthly', 'report'] and user.is_staff:
+    #         return base_queryset.filter(
+    #             models.Q(user__manager=user) |  # Users they manage
+    #             models.Q(user=user)             # Their own entries
+    #         )
+
+    #     # For regular CRUD operations (create, update, delete), users (including managers) only operate on their own entries
+    #     if user.is_superuser:
+    #         return base_queryset.all()
+    #     return base_queryset.filter(user=user)
+
     def get_queryset(self):
         user = self.request.user
         base_queryset = SaisieTemps.objects.select_related('user', 'projet')
-        
-        # For monthly and report actions, managers can see their managed users' entries
-        if self.action in ['monthly', 'report'] and user.is_staff:
-            return base_queryset.filter(
-                models.Q(user__manager=user) |  # Users they manage
-                models.Q(user=user)             # Their own entries
-            )
-        
-        # For regular CRUD operations (create, update, delete), users (including managers) only operate on their own entries
+
         if user.is_superuser:
+            # ✅ L'admin voit toutes les saisies de temps
             return base_queryset.all()
+
+        elif user.is_staff:
+            # ✅ Un manager voit seulement :
+            # - Ses propres saisies
+            # - Celles des utilisateurs qui lui sont rattachés
+            return base_queryset.filter(
+                models.Q(user=user) |  # Ses propres saisies
+                models.Q(user__manager=user)  # Celles de ses utilisateurs
+            )
+
+    # ✅ Un utilisateur classique ne voit que ses propres saisies
         return base_queryset.filter(user=user)
 
-
-
     def create(self, request, *args, **kwargs):
-        mutable_data = request.data.copy() if hasattr(request.data, 'copy') else dict(request.data)
+        mutable_data = request.data.copy() if hasattr(
+            request.data, 'copy') else dict(request.data)
         mutable_data['user'] = request.user.id
         serializer = self.get_serializer(data=mutable_data)
         serializer.is_valid(raise_exception=True)
@@ -206,7 +256,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     def monthly(self, request, user_id=None, month=None):
         try:
             year, month = map(int, month.split('-'))
-            
+
             import calendar
             from datetime import date, datetime
             from django.utils import timezone
@@ -219,7 +269,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
             # Get first day of the month
             first_day = date(year, month, 1)
-            
+
             # Get last day of the month
             if month == 12:
                 next_month = date(year + 1, 1, 1)
@@ -229,7 +279,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
             # Get Monday of the first week
             start_date = first_day - timedelta(days=first_day.weekday())
-            
+
             # Get Sunday of the last week
             end_date = last_day + timedelta(days=(6 - last_day.weekday()))
 
@@ -239,13 +289,13 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 date__gte=start_date,
                 date__lte=end_date
             ).select_related('projet')  # Include project data to avoid N+1 queries
-            
+
             # Get all projects for this user
             projects = Projet.objects.filter(
-                models.Q(saisietemps__user_id=user_id) | 
+                models.Q(saisietemps__user_id=user_id) |
                 models.Q(manager=request.user)
             ).distinct()
-            
+
             # Create a map of existing entries
             entry_map = {}
             for entry in queryset:
@@ -254,17 +304,17 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 key = f"{entry.projet.id}-{date_str}"
                 entry_map[key] = entry
                 logger.info(f"Found existing entry: {key}")
-            
+
             # Generate entries for all dates in the range
             entries = []
             current_date = start_date
             while current_date <= end_date:
                 date_str = current_date.strftime('%Y-%m-%d')
-                
+
                 for project in projects:
                     key = f"{project.id}-{date_str}"
                     logger.info(f"Processing key: {key}")
-                    
+
                     if key in entry_map:
                         logger.info(f"Using existing entry for {key}")
                         entries.append(entry_map[key])
@@ -278,9 +328,9 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                             temps=0,
                             description=''
                         ))
-                
+
                 current_date += timedelta(days=1)
-            
+
             serializer = self.get_serializer(entries, many=True)
             return Response(serializer.data)
         except (ValueError, TypeError):
@@ -303,7 +353,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
             User = get_user_model()
             year, month = map(int, month.split('-'))
-            
+
             # Get user and time entries
             target_user = User.objects.get(id=user_id)
             queryset = SaisieTemps.objects.filter(
@@ -343,7 +393,8 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 project_entries[entry.projet.nom].append(entry)
 
             # Summary
-            total_hours = sum(entry.temps for entries in project_entries.values() for entry in entries)
+            total_hours = sum(
+                entry.temps for entries in project_entries.values() for entry in entries)
             summary_data = [
                 ['Total des heures:', f"{total_hours:.2f}"],
                 ['Nombre de projets:', str(len(project_entries))]
@@ -368,7 +419,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                     f"{project_name} ({project_total:.2f}h)",
                     styles['Heading2']
                 ))
-                
+
                 # Project entries table
                 data = [['Date', 'Heures', 'Description']]
                 for entry in sorted(entries, key=lambda x: x.date):
@@ -377,7 +428,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                         f"{entry.temps:.2f}",
                         entry.description or ''
                     ])
-                
+
                 table = Table(data, colWidths=[100, 70, 300])
                 table.setStyle(TableStyle([
                     ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
@@ -385,7 +436,8 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                     ('GRID', (0, 0), (-1, -1), 1, colors.black),
                     ('BACKGROUND', (0, 0), (2, 0), colors.lightgrey),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('ALIGN', (2, 1), (2, -1), 'LEFT'),  # Left align descriptions
+                    # Left align descriptions
+                    ('ALIGN', (2, 1), (2, -1), 'LEFT'),
                     ('PADDING', (0, 0), (-1, -1), 6),
                 ]))
                 elements.append(table)
@@ -406,6 +458,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 {"error": "Format de date invalide. Utilisez YYYY-MM"},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
 
 class CompteRenduViewSet(viewsets.ModelViewSet):
     queryset = CompteRendu.objects.all()
@@ -429,7 +482,7 @@ class CompteRenduViewSet(viewsets.ModelViewSet):
             date__year=mois.year,
             date__month=mois.month
         ).aggregate(total=models.Sum('temps'))['total'] or 0
-        
+
         serializer.save(total_temps=total_temps)
 
     def perform_update(self, serializer):
@@ -440,5 +493,5 @@ class CompteRenduViewSet(viewsets.ModelViewSet):
             date__year=instance.mois.year,
             date__month=instance.mois.month
         ).aggregate(total=models.Sum('temps'))['total'] or 0
-        
+
         serializer.save(total_temps=total_temps)
