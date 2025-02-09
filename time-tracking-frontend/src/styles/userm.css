@@ -1,0 +1,93 @@
+.user-management {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    background-color: white;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+  }
+  
+  thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px;
+    border-bottom: 2px solid #e9ecef;
+  }
+  
+  tbody tr {
+    transition: background-color 0.2s ease;
+  }
+  
+  tbody tr:hover {
+    background-color: #f1f3f5;
+  }
+  
+  th, td {
+    padding: 12px;
+    border-bottom: 1px solid #e9ecef;
+    text-align: left;
+  }
+  
+  td .action-buttons {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .edit-button,
+  .delete-button {
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .edit-button {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .edit-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .delete-button {
+    background-color: #e03131;
+    color: white;
+  }
+  
+  .delete-button:hover {
+    background-color: #c82333;
+  }
+  
+  .no-entries {
+    padding: 20px;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+  }
+  
+  .error-message {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 20px;
+    font-size: 14px;
+    text-align: center;
+  }
+  

@@ -3,6 +3,7 @@ import { User } from '../types';
 import { authApi } from '../services/api';
 import '../styles/form.css';
 import '../styles/table.css';
+import '../styles/userm.css';
 
 interface UserForm {
   username: string;
