@@ -3,6 +3,7 @@ import { Project, User } from "../types";
 import { projectsApi, authApi } from "../services/api";
 import "../styles/form.css";
 import "../styles/table.css";
+import "../styles/projectm.css";
 
 interface ProjectForm {
   nom: string;
@@ -36,7 +37,6 @@ export default function ProjectManagement() {
     initializeData();
   }, []);
 
-  // Update users list when role or current user changes
   useEffect(() => {
     if (userRole) {
       fetchRegularUsers();
@@ -47,8 +47,7 @@ export default function ProjectManagement() {
     try {
       setLoading(prev => ({ ...prev, projects: true }));
       const response = await projectsApi.getAll();
-      // Ensure each project has a users array, even if empty
-      // Log la réponse pour debug
+    
       console.log('Projects response:', response.data);
 
       // S'assurer que chaque projet a un tableau users valide
@@ -146,8 +145,6 @@ export default function ProjectManagement() {
         [`remove-${projectId}`]: []
       }));
 
-      // Update the project in state with new users array
-      // Récupérer les utilisateurs complets pour les IDs sélectionnés
       const selectedUsers = regularUsers.filter(user => selectedUserIds.includes(user.id));
 
       setProjects(prevProjects =>
