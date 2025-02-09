@@ -24,6 +24,7 @@ export default function TimeSheetTable({ user }: Props) {
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
 
   const userId = user.id;
+  console.log('userId: ',userId)
 
   useEffect(() => {
     const startOfWeek = new Date(selectedDate);
@@ -79,9 +80,13 @@ export default function TimeSheetTable({ user }: Props) {
 
   const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
     const hours = newValue === "" ? 0 : parseFloat(newValue);
+    console.log(hours);
     const dateStr = date.toISOString().split("T")[0];
+    console.log(dateStr);
     const key = `${projectId}-${dateStr}`;
+    console.log(key);
     const existingEntry = timeEntries[userId]?.[key];
+    console.log(timeEntries);
     if (existingEntry?.temps === hours) return;
 
     if (![0, 0.5, 1].includes(hours)) {
@@ -112,7 +117,11 @@ export default function TimeSheetTable({ user }: Props) {
           return updatedEntries;
         });
       } else if (existingEntry?.entryId) {
-        await timeEntriesApi.update(existingEntry.entryId, { temps: hours });
+        await timeEntriesApi.update(existingEntry.entryId, {
+            temps: hours,
+            date: dateStr,
+            projet: projectId
+        }); 
         setTimeEntries(prev => ({
           ...prev,
           [userId]: {

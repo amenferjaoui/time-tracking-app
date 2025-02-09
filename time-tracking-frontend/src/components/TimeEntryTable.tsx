@@ -10,7 +10,7 @@ interface Props {
 
 export default function TimeEntryTable({ user }: Props) {
   const [, setError] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<string>(user.id.toString());
+  const [selectedUserId, setSelectedUserId] = useState<number>(user.id);
   const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
 
   const isManager = user.is_staff;
@@ -40,7 +40,7 @@ export default function TimeEntryTable({ user }: Props) {
         <>
           <select
             value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
+            onChange={(e) => setSelectedUserId(Number(e.target.value))}
             className="user-selector"
           >
             <option value={user.id}>Mes temps</option>
@@ -50,7 +50,7 @@ export default function TimeEntryTable({ user }: Props) {
               </option>
             ))}
           </select>
-          <TimeSheetTable user={assignedUsers.find(u => u.id.toString() === selectedUserId) || user} />
+          <TimeSheetTable user={assignedUsers.find(u => u.id === Number(selectedUserId)) || user} />
         </>
       ) : (
         <TimeSheetTable user={user} />
