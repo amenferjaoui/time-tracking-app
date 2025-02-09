@@ -20,57 +20,118 @@ export default function TimeEntryTable({ userId }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryMap>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const today = new Date();
+    if (isNaN(today.getTime())) {
+      console.error("Invalid initial date");
+      return new Date();
+    }
+    return today;
+  });
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
 
   useEffect(() => {
-    const startOfWeek = new Date(selectedDate);
-    startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
-    const weekDates = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(startOfWeek);
-      date.setDate(startOfWeek.getDate() + i);
-      return date;
-    });
-    setCurrentWeek(weekDates);
+    if (!selectedDate || isNaN(selectedDate.getTime())) {
+      console.error("Invalid selected date");
+      return;
+    }
+
+    try {
+      const startOfWeek = new Date(selectedDate);
+      startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
+      
+      if (isNaN(startOfWeek.getTime())) {
+        console.error("Invalid start of week date");
+        return;
+      }
+
+      const weekDates = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + i);
+        return date;
+      });
+
+      if (weekDates.some(date => !date || isNaN(date.getTime()))) {
+        console.error("Invalid dates in week array");
+        return;
+      }
+
+      setCurrentWeek(weekDates);
+    } catch (error) {
+      console.error("Error calculating week dates:", error);
+    }
   }, [selectedDate]);
 
   const fetchTimeEntries = async () => {
+    if (!currentWeek || currentWeek.length < 7) {
+      console.error("Invalid week data");
+      return;
+    }
+
+    const firstDay = currentWeek[0];
+    const lastDay = currentWeek[6];
+
+    if (!firstDay || !lastDay || isNaN(firstDay.getTime()) || isNaN(lastDay.getTime())) {
+      console.error("Invalid dates in week data");
+      return;
+    }
+
     try {
-      const firstDayMonth = `${currentWeek[0].getFullYear()}-${String(currentWeek[0].getMonth() + 1).padStart(2, "0")}`;
-      const lastDayMonth = `${currentWeek[6].getFullYear()}-${String(currentWeek[6].getMonth() + 1).padStart(2, "0")}`;
+      const firstDayMonth = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, "0")}`;
+      const lastDayMonth = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}`;
+      
       const promises = [timeEntriesApi.getMonthlyReport(userId, firstDayMonth)];
       if (firstDayMonth !== lastDayMonth) {
         promises.push(timeEntriesApi.getMonthlyReport(userId, lastDayMonth));
       }
+      
       const responses = await Promise.all(promises);
       const entriesMap: TimeEntryMap = {};
+      
       responses.forEach(response => {
         response.data.forEach((entry: TimeEntry) => {
           const key = `${entry.projet}-${entry.date}`;
           entriesMap[key] = { temps: entry.temps, entryId: entry.id };
         });
       });
+      
       setTimeEntries(entriesMap);
     } catch (error) {
       console.error("Error fetching time entries:", error);
     }
   };
 
+  // Fetch projects only once when component mounts
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+    const fetchProjects = async () => {
       try {
         const projectsRes = await projectsApi.getAll();
         setProjects(projectsRes.data);
+      } catch (error) {
+        console.error("Error fetching projects:", error);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  // Fetch time entries whenever currentWeek changes
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentWeek || currentWeek.length < 7) {
+        return;
+      }
+
+      setIsLoading(true);
+      try {
         await fetchTimeEntries();
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching time entries:", error);
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-  }, [selectedDate, userId, currentWeek]);
+  }, [currentWeek, userId]);
 
   const handleWeekChange = (direction: "prev" | "next") => {
     setSelectedDate((prev) => {
@@ -80,10 +141,31 @@ export default function TimeEntryTable({ userId }: Props) {
     });
   };
 
+  const [editingValue, setEditingValue] = useState<string>("");
+  const [isEditing, setIsEditing] = useState<string>("");
+
+  const formatHours = (value: number | string): string => {
+    if (value === "" || value === undefined) return "";
+    const number = typeof value === "string" ? parseFloat(value.replace(",", ".")) : value;
+    if (isNaN(number)) return "";
+    return number.toFixed(2).replace(".", ",");
+  };
+
   const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
-    const hours = newValue === "" ? 0 : parseFloat(newValue);
+    // Allow typing numbers, dot and comma
+    if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
+    
     const dateStr = date.toISOString().split("T")[0];
     const key = `${projectId}-${dateStr}`;
+    setEditingValue(newValue);
+    setIsEditing(key);
+
+    // If empty or still typing decimal, don't process yet
+    if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
+      return;
+    }
+
+    const hours = parseFloat(newValue.replace(",", "."));
     const existingEntry = timeEntries[key];
     if (existingEntry?.temps === hours) return;
 
@@ -166,12 +248,15 @@ export default function TimeEntryTable({ userId }: Props) {
                 return (
                   <td key={dateStr} className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error ? "error" : ""}`}>
                     <input
-                      type="number"
-                      min="0"
-                      max="1"
-                      step="0.5"
-                      value={entry?.temps ?? ""}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[,.]?[0-9]*"
+                      value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
                       onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
+                      onBlur={() => {
+                        setIsEditing("");
+                        setEditingValue("");
+                      }}
                       className="hours-input"
                       title={entry?.error}
                     />

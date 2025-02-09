@@ -13,13 +13,13 @@ from .serializers import (
 
 User = get_user_model()
 
-class IsAdminUser(permissions.BasePermission):
+class IsAdminOrManagerForUserCreation(permissions.BasePermission):
     def has_permission(self, request, view):
         if view.action == 'create':
-            # For user creation, check if there's an authenticated admin user
-            # or if it's an unauthenticated request (allowing initial user creation)
+            # Pour la création d'utilisateur, vérifier si c'est un admin ou un manager
             return (
-                (request.user and request.user.is_authenticated and request.user.is_superuser) or
+                (request.user and request.user.is_authenticated and 
+                 (request.user.is_superuser or request.user.is_staff)) or
                 not User.objects.filter(is_superuser=True).exists()
             )
         return request.user and request.user.is_superuser
@@ -39,9 +39,9 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            return [IsAdminUser()]  # Only need admin permission, no authentication required
+            return [IsAdminOrManagerForUserCreation()]  # Allow both admin and manager to create users
         elif self.action == 'destroy':
-            return [permissions.IsAuthenticated(), IsAdminUser()]
+            return [permissions.IsAuthenticated(), IsAdminOrManagerForUserCreation()]
         elif self.action in ['update', 'partial_update']:
             return [permissions.IsAuthenticated(), IsManagerOrAdmin()]
         return [permissions.IsAuthenticated()]
@@ -174,11 +174,19 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        base_queryset = SaisieTemps.objects.select_related('user', 'projet')
+        
+        # For monthly and report actions, managers can see their managed users' entries
+        if self.action in ['monthly', 'report'] and user.is_staff:
+            return base_queryset.filter(
+                models.Q(user__manager=user) |  # Users they manage
+                models.Q(user=user)             # Their own entries
+            )
+        
+        # For regular CRUD operations (create, update, delete), users (including managers) only operate on their own entries
         if user.is_superuser:
-            return SaisieTemps.objects.all()
-        elif user.is_staff:
-            return SaisieTemps.objects.filter(user__manager=user)
-        return SaisieTemps.objects.filter(user=user)
+            return base_queryset.all()
+        return base_queryset.filter(user=user)
 
 
 
