@@ -283,7 +283,7 @@ interface TimeEntryMap {
   };
 }
 
-export default function TimeEntryTable({ userId }: Props): JSX.Element {
+export default function TimeEntryTable({ userId }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryMap>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -291,12 +291,6 @@ export default function TimeEntryTable({ userId }: Props): JSX.Element {
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
 
   useEffect(() => {
-    if (!selectedDate || isNaN(selectedDate.getTime())) {
-      console.error("Invalid selected date");
-      setCurrentWeek([]);
-      return;
-    }
-
     const startOfWeek = new Date(selectedDate);
     startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
     const weekDates = Array.from({ length: 7 }, (_, i) => {
@@ -329,14 +323,13 @@ export default function TimeEntryTable({ userId }: Props): JSX.Element {
     }
   };
 
+  useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const projectsRes = await projectsApi.getAll();
         setProjects(projectsRes.data);
-        if (currentWeek.length === 7) {
-          await fetchTimeEntries();
-        }
+        await fetchTimeEntries();
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -344,7 +337,7 @@ export default function TimeEntryTable({ userId }: Props): JSX.Element {
       }
     };
     fetchData();
-  }, [userId, currentWeek]);
+  }, [selectedDate, userId, currentWeek]);
 
   const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
     const hours = newValue === "" ? 0 : parseFloat(newValue);
@@ -367,21 +360,15 @@ export default function TimeEntryTable({ userId }: Props): JSX.Element {
     }));
 
     try {
-      if (hours === "") {
-        if (existingEntry?.entryId) {
-          await timeEntriesApi.delete(existingEntry.entryId);
-        }
+      if (hours === 0 && existingEntry?.entryId) {
+        await timeEntriesApi.delete(existingEntry.entryId);
         setTimeEntries(prev => {
-          const { [key]: _, ...rest } = prev;
-          return rest;
+          const updatedEntries = { ...prev };
+          delete updatedEntries[key];
+          return updatedEntries;
         });
       } else if (existingEntry?.entryId) {
-        await timeEntriesApi.update(existingEntry.entryId, {
-          temps: hours,
-          user: userId,
-          date: dateStr,
-          projet: projectId
-        });
+        await timeEntriesApi.update(existingEntry.entryId, { temps: hours });
         setTimeEntries(prev => ({
           ...prev,
           [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
@@ -393,27 +380,17 @@ export default function TimeEntryTable({ userId }: Props): JSX.Element {
           [key]: { temps: hours, entryId: response.data.id, saving: false }
         }));
       }
-    } catch (error: any) {
-      console.error("Erreur lors de l'enregistrement :", error);
-
-      let errorMessage = "Temps total de travail dépassé";
-      if (error.response?.data?.non_field_errors) {
-        errorMessage = error.response.data.non_field_errors[0];
-      }
-
+    } catch (error) {
+      console.error("Error updating time entry:", error);
       setTimeEntries(prev => ({
         ...prev,
-        [key]: { temps: "", error: errorMessage }
+        [key]: { ...prev[key], saving: false, error: "Échec de l'enregistrement" }
       }));
     }
   };
 
   if (isLoading) {
     return <div className="loading-indicator">Chargement...</div>;
-  }
-
-  if (!currentWeek.length) {
-    return <div>Erreur: Impossible de charger le calendrier</div>;
   }
 
   return (
@@ -455,12 +432,9 @@ export default function TimeEntryTable({ userId }: Props): JSX.Element {
                       value={entry?.temps ?? ""}
                       onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
                       className="hours-input"
-                      onBlur={() => setTimeEntries(prev => ({
-                        ...prev,
-                        [key]: { ...prev[key], error: undefined }
-                      }))}
+                      title={entry?.error}
                     />
-                    {entry?.error && <div className="error-message">{entry.error}</div>}
+                    {entry?.saving && <div className="saving-indicator" />}
                   </td>
                 );
               })}
