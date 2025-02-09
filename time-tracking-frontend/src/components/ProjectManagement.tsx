@@ -3,6 +3,7 @@ import { Project, User } from "../types";
 import { projectsApi, authApi } from "../services/api";
 import "../styles/form.css";
 import "../styles/table.css";
+import "../styles/projectm.css";
 
 interface ProjectForm {
   nom: string;
