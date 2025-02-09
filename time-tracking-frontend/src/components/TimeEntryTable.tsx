@@ -151,65 +151,134 @@ export default function TimeEntryTable({ userId }: Props) {
     return number.toFixed(2).replace(".", ",");
   };
 
-  const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
-    // Allow typing numbers, dot and comma
-    if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
-    
-    const dateStr = date.toISOString().split("T")[0];
-    const key = `${projectId}-${dateStr}`;
-    setEditingValue(newValue);
-    setIsEditing(key);
+    const calculateDayTotal = (dateStr: string, excludeProjectId?: number, excludeHours?: number) => {
+      return Object.entries(timeEntries).reduce((total, [key, entry]) => {
+        const [projectId, entryDate] = key.split('-');
+        if (entryDate === dateStr && Number(projectId) !== excludeProjectId) {
+          return total + entry.temps;
+        }
+        return total;
+      }, 0);
+    };
 
-    // If empty or still typing decimal, don't process yet
-    if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
-      return;
-    }
+    const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
+      // Allow typing numbers, dot and comma
+      if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
+      
+      const dateStr = date.toISOString().split("T")[0];
+      const key = `${projectId}-${dateStr}`;
+      setEditingValue(newValue);
+      setIsEditing(key);
 
-    const hours = parseFloat(newValue.replace(",", "."));
-    const existingEntry = timeEntries[key];
-    if (existingEntry?.temps === hours) return;
-
-    if (![0, 0.5, 1].includes(hours)) {
-      setTimeEntries(prev => ({
-        ...prev,
-        [key]: { ...prev[key], temps: hours, error: "Seules les valeurs 0, 0.5 et 1 sont autorisées" }
-      }));
-      return;
-    }
-
-    setTimeEntries(prev => ({
-      ...prev,
-      [key]: { temps: hours, entryId: existingEntry?.entryId, saving: true, error: undefined }
-    }));
-
-    try {
-      if (hours === 0 && existingEntry?.entryId) {
-        await timeEntriesApi.delete(existingEntry.entryId);
-        setTimeEntries(prev => {
-          const updatedEntries = { ...prev };
-          delete updatedEntries[key];
-          return updatedEntries;
-        });
-      } else if (existingEntry?.entryId) {
-        await timeEntriesApi.update(existingEntry.entryId, { temps: hours });
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
-        }));
-      } else if (hours > 0) {
-        const response = await timeEntriesApi.create({ date: dateStr, projet: projectId, temps: hours, description: "" });
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { temps: hours, entryId: response.data.id, saving: false }
-        }));
+      // If empty or still typing decimal, don't process yet
+      if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
+        return;
       }
-    } catch (error) {
-      console.error("Error updating time entry:", error);
-      setTimeEntries(prev => ({
-        ...prev,
-        [key]: { ...prev[key], saving: false, error: "Échec de l'enregistrement" }
-      }));
-    }
+
+      const hours = parseFloat(newValue.replace(",", "."));
+      const existingEntry = timeEntries[key];
+      
+      // If value hasn't changed, do nothing
+      if (existingEntry?.temps === hours) {
+        return;
+      }
+
+      // Validate input value first
+      if (![0, 0.5, 1].includes(hours)) {
+        const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
+        setEditingValue(restoredValue);
+        setTimeEntries(prev => ({
+          ...prev,
+          [key]: { 
+            ...prev[key], 
+            temps: existingEntry?.temps || 0,
+            error: "Seules les valeurs 0, 0.5 et 1 sont autorisées"
+          }
+        }));
+        return;
+      }
+
+      // Then validate total time for this day
+      const dayTotal = calculateDayTotal(dateStr, projectId);
+      if (dayTotal + hours > 1.0) {
+        const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
+        setEditingValue(restoredValue);
+        setTimeEntries(prev => ({
+          ...prev,
+          [key]: { 
+            ...prev[key], 
+            temps: existingEntry?.temps || 0,
+            error: `Le temps total (${dayTotal + hours}) ne peut pas dépasser 1 journée. Vous avez déjà saisi ${dayTotal} jour(s) pour cette date.`
+          }
+        }));
+        return;
+      }
+
+      try {
+        if (hours === 0 && existingEntry?.entryId) {
+          // Set saving state before API call
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { 
+              ...prev[key], 
+              saving: true, 
+              error: undefined 
+            }
+          }));
+          await timeEntriesApi.delete(existingEntry.entryId);
+          setTimeEntries(prev => {
+            const updatedEntries = { ...prev };
+            delete updatedEntries[key];
+            return updatedEntries;
+          });
+        } else if (existingEntry?.entryId) {
+          // Set saving state before API call
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { 
+              ...prev[key], 
+              saving: true, 
+              error: undefined 
+            }
+          }));
+          await timeEntriesApi.update(existingEntry.entryId, { temps: hours });
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
+          }));
+        } else if (hours > 0) {
+          // Set saving state before API call
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { 
+              ...prev[key], 
+              saving: true, 
+              error: undefined 
+            }
+          }));
+          const response = await timeEntriesApi.create({ date: dateStr, projet: projectId, temps: hours, description: "" });
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { temps: hours, entryId: response.data.id, saving: false }
+          }));
+        }
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.non_field_errors?.[0] || 
+                           error.response?.data?.detail ||
+                           "Échec de l'enregistrement";
+        setTimeEntries(prev => ({
+          ...prev,
+          [key]: { 
+            ...prev[key], 
+            temps: existingEntry?.temps || 0,
+            saving: false, 
+            error: errorMessage 
+          }
+        }));
+        // Restore the previous value in the input
+        const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
+        setEditingValue(restoredValue);
+      }
   };
 
   if (isLoading) {
@@ -247,20 +316,22 @@ export default function TimeEntryTable({ userId }: Props) {
                 const entry = timeEntries[key];
                 return (
                   <td key={dateStr} className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error ? "error" : ""}`}>
-                    <input
-                      type="text"
-                      inputMode="decimal"
-                      pattern="[0-9]*[,.]?[0-9]*"
-                      value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
-                      onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
-                      onBlur={() => {
-                        setIsEditing("");
-                        setEditingValue("");
-                      }}
-                      className="hours-input"
-                      title={entry?.error}
-                    />
-                    {entry?.saving && <div className="saving-indicator" />}
+                    <div className="input-container">
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*[,.]?[0-9]*"
+                        value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
+                        onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
+                        onBlur={() => {
+                          setIsEditing("");
+                          setEditingValue("");
+                        }}
+                        className="hours-input"
+                      />
+                      {entry?.saving && <div className="saving-indicator" />}
+                      {entry?.error && <div className="error-message">{entry.error}</div>}
+                    </div>
                   </td>
                 );
               })}
