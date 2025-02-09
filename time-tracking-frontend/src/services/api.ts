@@ -95,8 +95,10 @@ const timeEntriesApi = {
 };
 
 const projectsApi = {
-  getAll: async () => {
-    const response = await axiosInstance.get<Project[]>('/projets/');
+  getAll: async (userId?: number) => {
+    const response = await axiosInstance.get<Project[]>('/projets/', {
+      params: userId ? { user_id: userId } : undefined
+    });
     return response;
   },
   create: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {

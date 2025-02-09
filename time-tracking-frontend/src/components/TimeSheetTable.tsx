@@ -20,6 +20,7 @@ export default function TimeSheetTable({ user }: Props) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [timeEntries, setTimeEntries] = useState<{ [userId: string]: TimeEntryMap }>({});
     const [isLoading, setIsLoading] = useState(true);
+    const [viewingAsManager, setViewingAsManager] = useState(false);
     const [selectedDate, setSelectedDate] = useState(() => {
       const today = new Date();
       if (isNaN(today.getTime())) {
@@ -31,6 +32,10 @@ export default function TimeSheetTable({ user }: Props) {
     const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
 
     const userId = user.id;
+    
+    useEffect(() => {
+      setViewingAsManager(user.is_staff && user.id !== userId);
+    }, [user.is_staff, user.id, userId]);
   
     useEffect(() => {
       if (!selectedDate || isNaN(selectedDate.getTime())) {
@@ -106,18 +111,46 @@ export default function TimeSheetTable({ user }: Props) {
       }
     };
   
-    // Fetch projects only once when component mounts
+    // Fetch projects whenever user changes
     useEffect(() => {
       const fetchProjects = async () => {
         try {
-          const projectsRes = await projectsApi.getAll();
-          setProjects(projectsRes.data);
+          let allProjects: Project[] = [];
+          
+          if (user.role === 'admin') {
+            // Admin voit tous les projets
+            const response = await projectsApi.getAll();
+            allProjects = response.data;
+          } else if (user.role === 'manager') {
+            // Manager voit les projets qu'il manage + les projets où il est assigné
+            const [managedResponse, assignedResponse] = await Promise.all([
+              projectsApi.getAll(), // Récupère tous les projets pour filtrer ceux qu'il manage
+              projectsApi.getAll(user.id) // Récupère les projets où il est assigné
+            ]);
+            
+            // Combine et déduplique les projets
+            const managedProjects = managedResponse.data.filter(p => p.manager === user.id);
+            const assignedProjects = assignedResponse.data;
+            const projectMap = new Map<number, Project>();
+            
+            [...managedProjects, ...assignedProjects].forEach(project => {
+              projectMap.set(project.id, project);
+            });
+            
+            allProjects = Array.from(projectMap.values());
+          } else {
+            // Utilisateur normal voit uniquement les projets où il est assigné
+            const response = await projectsApi.getAll(userId);
+            allProjects = response.data;
+          }
+          
+          setProjects(allProjects);
         } catch (error) {
           console.error("Error fetching projects:", error);
         }
       };
       fetchProjects();
-    }, []);
+    }, [userId, user.id, user.role]);
   
     // Fetch time entries whenever currentWeek changes
     useEffect(() => {
@@ -156,11 +189,12 @@ export default function TimeSheetTable({ user }: Props) {
       return number.toFixed(2).replace(".", ",");
     };
   
-      const calculateDayTotal = (dateStr: string, excludeProjectId?: number, excludeHours?: number) => {
-        return Object.entries(timeEntries).reduce((total, [key, entry]) => {
+      const calculateDayTotal = (dateStr: string, excludeProjectId?: number) => {
+        const userEntries = timeEntries[userId] || {};
+        return Object.entries(userEntries).reduce((total, [key, entry]) => {
           const [projectId, entryDate] = key.split('-');
           if (entryDate === dateStr && Number(projectId) !== excludeProjectId) {
-            return total + entry[key].temps;
+            return total + entry.temps;
           }
           return total;
         }, 0);
@@ -240,11 +274,13 @@ export default function TimeSheetTable({ user }: Props) {
                 }
             }));
             await timeEntriesApi.delete(existingEntry.entryId);
-            setTimeEntries(prev => {
-              const updatedEntries = { ...prev };
-              delete updatedEntries[key];
-              return updatedEntries;
-            });
+            setTimeEntries(prev => ({
+              ...prev,
+              [userId]: {
+                ...prev[userId],
+                [key]: undefined
+              }
+            }));
           } else if (existingEntry?.entryId) {
             // Set saving state before API call
             setTimeEntries(prev => ({
@@ -317,6 +353,11 @@ export default function TimeSheetTable({ user }: Props) {
   return (
     <div className="timesheet-container">
       <div className="timesheet-controls">
+        {viewingAsManager && (
+          <div className="manager-indicator">
+            Consultation des temps de {user.username}
+          </div>
+        )}
         <button className="week-button" onClick={() => handleWeekChange("prev")}>
           ← Semaine précédente
         </button>
@@ -341,7 +382,7 @@ export default function TimeSheetTable({ user }: Props) {
               {currentWeek.map(date => {
                 const dateStr = date.toISOString().split("T")[0];
                 const key = `${project.id}-${dateStr}`;
-                const entry = timeEntries[key];
+                const entry = timeEntries[userId]?.[key];
                 return (
                   <td key={dateStr} className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error ? "error" : ""}`}>
                     <div className="input-container">
@@ -349,7 +390,7 @@ export default function TimeSheetTable({ user }: Props) {
                         type="text"
                         inputMode="decimal"
                         pattern="[0-9]*[,.]?[0-9]*"
-                        value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry[key].temps) : "")}
+                        value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
                         onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
                         onBlur={() => {
                           setIsEditing("");
@@ -358,7 +399,7 @@ export default function TimeSheetTable({ user }: Props) {
                         className="hours-input"
                       />
                       {entry?.saving && <div className="saving-indicator" />}
-                      {entry?.error && <div className="error-message">{entry[key].error}</div>}
+                      {entry?.error && <div className="error-message">{entry.error}</div>}
                     </div>
                   </td>
                 );

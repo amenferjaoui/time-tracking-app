@@ -45,12 +45,40 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     }
   }, [isManager, user.id]);
 
-  // Récupérer la liste des projets
+  // Récupérer la liste des projets en fonction du rôle de l'utilisateur
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await projectsApi.getAll();
-        setProjects(response.data);
+        let allProjects: Project[] = [];
+        
+        if (user.role === 'admin') {
+          // Admin voit tous les projets
+          const response = await projectsApi.getAll();
+          allProjects = response.data;
+        } else if (user.role === 'manager') {
+          // Manager voit les projets qu'il manage + les projets où il est assigné
+          const [managedResponse, assignedResponse] = await Promise.all([
+            projectsApi.getAll(), // Récupère tous les projets pour filtrer ceux qu'il manage
+            projectsApi.getAll(user.id) // Récupère les projets où il est assigné
+          ]);
+          
+          // Combine et déduplique les projets
+          const managedProjects = managedResponse.data.filter(p => p.manager === user.id);
+          const assignedProjects = assignedResponse.data;
+          const projectMap = new Map<number, Project>();
+          
+          [...managedProjects, ...assignedProjects].forEach(project => {
+            projectMap.set(project.id, project);
+          });
+          
+          allProjects = Array.from(projectMap.values());
+        } else {
+          // Utilisateur normal voit uniquement les projets où il est assigné
+          const response = await projectsApi.getAll(user.id);
+          allProjects = response.data;
+        }
+        
+        setProjects(allProjects);
       } catch (error) {
         console.error(error);
         setError("Échec du chargement des projets.");
@@ -58,7 +86,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     };
 
     fetchProjects();
-  }, []);
+  }, [user.id, user.role]);
 
   // Récupérer les entrées de temps pour le mois sélectionné (en filtrant les zéros)
   const fetchMonthlyData = useCallback(async () => {

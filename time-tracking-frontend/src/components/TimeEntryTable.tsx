@@ -42,14 +42,13 @@ export default function TimeEntryTable({ user }: Props) {
             onChange={(e) => setSelectedUserId(Number(e.target.value))}
             className="user-selector"
           >
-            <option value={user.id}>Mes temps</option>
-            {assignedUsers.map((assignedUser) => (
-              <option key={assignedUser.id} value={assignedUser.id}>
-                {assignedUser.username}
+            {[user, ...assignedUsers.filter(u => u.id !== user.id)].map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.id === user.id ? "Mes temps" : u.username}
               </option>
             ))}
           </select>
-          <TimeSheetTable user={assignedUsers.find(u => u.id === Number(selectedUserId)) || user} />
+          <TimeSheetTable user={selectedUserId === user.id ? user : assignedUsers.find(u => u.id === selectedUserId)!} />
         </>
       ) : (
         <TimeSheetTable user={user} />

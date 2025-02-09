@@ -66,8 +66,15 @@ class UserViewSet(viewsets.ModelViewSet):
             return User.objects.all()
 
         elif user.is_staff:
-
-            return User.objects.filter(models.Q(id=user.id) | models.Q(manager=user))
+            # For managers, return:
+            # 1. All users with role 'manager' or 'admin' (for project manager display)
+            # 2. Their assigned users
+            # 3. The managers of projects they're assigned to
+            return User.objects.filter(
+                models.Q(role__in=['manager', 'admin']) |  # All managers/admins
+                models.Q(manager=user) |  # Their assigned users
+                models.Q(projet__users=user)  # Managers of projects they're assigned to
+            ).distinct()
 
         return User.objects.filter(id=user.id)
 
@@ -94,7 +101,11 @@ class ProjetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base_queryset = Projet.objects.prefetch_related('users')
+        user_id = self.request.query_params.get('user_id', None)
 
+        if user_id and (user.is_superuser or (user.is_staff and User.objects.get(id=user_id).manager == user)):
+            # If user_id is provided and requester is admin or the user's manager
+            return base_queryset.filter(users=user_id).distinct()
         if user.is_superuser:
             return base_queryset.all()
         elif user.is_staff:
