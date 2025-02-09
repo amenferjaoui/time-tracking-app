@@ -293,7 +293,7 @@ interface Props {
 }
 
 interface TimeEntryMap {
-  [key: string]: { // key format: "projectId-YYYY-MM-DD"
+  [key: string]: {
     temps: number;
     entryId?: number;
     saving?: boolean;
@@ -310,40 +310,31 @@ export default function TimeEntryTable({ userId }: Props) {
 
   useEffect(() => {
     const startOfWeek = new Date(selectedDate);
-    startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay() + 1); // Monday
-
+    startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay() + 1);
     const weekDates = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(startOfWeek);
       date.setDate(startOfWeek.getDate() + i);
       return date;
     });
-
     setCurrentWeek(weekDates);
   }, [selectedDate]);
 
   const fetchTimeEntries = async () => {
     try {
-      const firstDayMonth = `${currentWeek[0].getFullYear()}-${String(currentWeek[0].getMonth() + 1).padStart(2, '0')}`;
-      const lastDayMonth = `${currentWeek[6].getFullYear()}-${String(currentWeek[6].getMonth() + 1).padStart(2, '0')}`;
-
+      const firstDayMonth = `${currentWeek[0].getFullYear()}-${String(currentWeek[0].getMonth() + 1).padStart(2, "0")}`;
+      const lastDayMonth = `${currentWeek[6].getFullYear()}-${String(currentWeek[6].getMonth() + 1).padStart(2, "0")}`;
       const promises = [timeEntriesApi.getMonthlyReport(userId, firstDayMonth)];
       if (firstDayMonth !== lastDayMonth) {
         promises.push(timeEntriesApi.getMonthlyReport(userId, lastDayMonth));
       }
-
       const responses = await Promise.all(promises);
-
       const entriesMap: TimeEntryMap = {};
       responses.forEach(response => {
         response.data.forEach((entry: TimeEntry) => {
           const key = `${entry.projet}-${entry.date}`;
-          entriesMap[key] = {
-            temps: entry.temps,
-            entryId: entry.id
-          };
+          entriesMap[key] = { temps: entry.temps, entryId: entry.id };
         });
       });
-
       setTimeEntries(entriesMap);
     } catch (error) {
       console.error("Error fetching time entries:", error);
@@ -363,45 +354,27 @@ export default function TimeEntryTable({ userId }: Props) {
         setIsLoading(false);
       }
     };
-
     fetchData();
   }, [selectedDate, userId, currentWeek]);
 
-  const handleHoursChange = async (
-    projectId: number,
-    date: Date,
-    newValue: string
-  ) => {
-    const hours = newValue === '' ? 0 : parseFloat(newValue);
-    const dateStr = date.toISOString().split('T')[0];
+  const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
+    const hours = newValue === "" ? 0 : parseFloat(newValue);
+    const dateStr = date.toISOString().split("T")[0];
     const key = `${projectId}-${dateStr}`;
     const existingEntry = timeEntries[key];
-
-    // Éviter une requête inutile si la valeur ne change pas
     if (existingEntry?.temps === hours) return;
 
-    // Vérification de la valeur autorisée
     if (![0, 0.5, 1].includes(hours)) {
       setTimeEntries(prev => ({
         ...prev,
-        [key]: {
-          ...prev[key],
-          temps: hours,
-          error: "Seules les valeurs 0, 0.5 et 1 sont autorisées"
-        }
+        [key]: { ...prev[key], temps: hours, error: "Seules les valeurs 0, 0.5 et 1 sont autorisées" }
       }));
       return;
     }
 
-    // Mise à jour locale immédiate
     setTimeEntries(prev => ({
       ...prev,
-      [key]: {
-        temps: hours,
-        entryId: existingEntry?.entryId,
-        saving: true,
-        error: undefined
-      }
+      [key]: { temps: hours, entryId: existingEntry?.entryId, saving: true, error: undefined }
     }));
 
     try {
@@ -419,13 +392,7 @@ export default function TimeEntryTable({ userId }: Props) {
           [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
         }));
       } else if (hours > 0) {
-        const response = await timeEntriesApi.create({
-          date: dateStr,
-          projet: projectId,
-          temps: hours,
-          description: ''
-        });
-
+        const response = await timeEntriesApi.create({ date: dateStr, projet: projectId, temps: hours, description: "" });
         setTimeEntries(prev => ({
           ...prev,
           [key]: { temps: hours, entryId: response.data.id, saving: false }
@@ -441,56 +408,46 @@ export default function TimeEntryTable({ userId }: Props) {
   };
 
   if (isLoading) {
-    return <div>Chargement...</div>;
+    return <div className="loading-indicator">Chargement...</div>;
   }
 
   return (
     <div className="timesheet-container">
+      <h2>Saisie des temps</h2>
       <div className="timesheet-controls">
-        <div className="week-navigation">
-          <button onClick={() => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() - 7)))}>
-            ← Semaine précédente
-          </button>
-          <span className="week-label">
-            Semaine du {currentWeek[0]?.toLocaleDateString('fr-FR')}
-          </span>
-          <button
-            onClick={() => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() + 7)))}
-            disabled={currentWeek[6] >= new Date()}
-          >
-            Semaine suivante →
-          </button>
-        </div>
+        <button className="week-button" onClick={() => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() - 7)))}>
+          ← Semaine précédente
+        </button>
+        <span className="week-label">Semaine du {currentWeek[0]?.toLocaleDateString("fr-FR")}</span>
+        <button className="week-button" onClick={() => setSelectedDate(prev => new Date(prev.setDate(prev.getDate() + 7)))}>
+          Semaine suivante →
+        </button>
       </div>
-
       <table className="timesheet-table">
         <thead>
           <tr>
-            <th className="project-column">Projet</th>
+            <th>Projet</th>
             {currentWeek.map(date => (
-              <th key={date.toISOString()} className="day-column">
-                {date.toLocaleDateString('fr-FR', { weekday: 'short' })}<br />
-                {date.getDate()}
-              </th>
+              <th key={date.toISOString()}>{date.toLocaleDateString("fr-FR", { weekday: "short" })}<br />{date.getDate()}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {projects.map(project => (
             <tr key={project.id}>
-              <td className="project-name">{project.nom}</td>
+              <td>{project.nom}</td>
               {currentWeek.map(date => {
-                const dateStr = date.toISOString().split('T')[0];
+                const dateStr = date.toISOString().split("T")[0];
                 const key = `${project.id}-${dateStr}`;
                 const entry = timeEntries[key];
                 return (
-                  <td key={dateStr} className={`hours-cell ${entry?.saving ? 'saving' : ''} ${entry?.error ? 'error' : ''}`}>
+                  <td key={dateStr} className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error ? "error" : ""}`}>
                     <input
                       type="number"
                       min="0"
                       max="1"
                       step="0.5"
-                      value={entry?.temps ?? ''}
+                      value={entry?.temps ?? ""}
                       onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
                       className="hours-input"
                       title={entry?.error}
@@ -506,4 +463,3 @@ export default function TimeEntryTable({ userId }: Props) {
     </div>
   );
 }
-
