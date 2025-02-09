@@ -59,28 +59,16 @@ class UserViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     if user.is_superuser:  # Admin voit tout
-    #         return User.objects.all()
-    #     elif user.is_staff:  # Manager voit les admins, managers et ses utilisateurs gérés
-    #         return User.objects.filter(models.Q(is_staff=True) | models.Q(is_superuser=True) | models.Q(manager=user))
-    #     return User.objects.filter(id=user.id)  # User ne voit que lui-même
-
     def get_queryset(self):
         user = self.request.user
 
         if user.is_superuser:
-            # ✅ L'admin voit tous les utilisateurs
             return User.objects.all()
 
         elif user.is_staff:
-            # ✅ Un manager voit seulement :
-            # - Lui-même
-            # - Les utilisateurs qui lui sont rattachés
+
             return User.objects.filter(models.Q(id=user.id) | models.Q(manager=user))
 
-    # ✅ Un utilisateur classique ne voit que lui-même
         return User.objects.filter(id=user.id)
 
     @action(detail=False, methods=['get'])
@@ -122,10 +110,8 @@ class ProjetViewSet(viewsets.ModelViewSet):
             raise PermissionDenied(
                 "Only managers and admins can create projects")
 
-        # If admin is creating the project, use the manager from the request data
-        # If manager is creating the project, use themselves as manager
         if self.request.user.is_superuser:
-            serializer.save()  # Use manager from request data
+            serializer.save()  
         else:
             serializer.save(manager=self.request.user)
 
@@ -133,7 +119,6 @@ class ProjetViewSet(viewsets.ModelViewSet):
         instance = serializer.instance
         user = self.request.user
 
-        # Only the project manager or admin can update
         if not user.is_superuser and instance.manager != user:
             raise PermissionDenied(
                 "Only the project manager or admin can update this project")
@@ -146,33 +131,27 @@ class ProjetViewSet(viewsets.ModelViewSet):
         user = request.user
 
         try:
-            # Validate user IDs
             user_ids = request.data.get('user_ids', [])
             if not isinstance(user_ids, list):
                 raise ValidationError("user_ids must be a list")
 
-            # Get users to assign
             users = User.objects.filter(id__in=user_ids)
             if len(users) != len(user_ids):
                 raise ValidationError("Some user IDs are invalid")
 
-            # Permission checks
             if user.is_superuser:
-                # Admin can assign any user (including managers) to any project
                 pass
             elif user.is_staff:
-                # Manager can only assign their managed users to their own projects
                 if project.manager != user:
                     raise PermissionDenied(
                         "You can only assign users to your own projects")
 
-                # Managers can't assign other managers
                 manager_users = users.filter(is_staff=True)
                 if manager_users.exists():
                     raise ValidationError(
                         "Managers can only assign regular users to projects")
 
-                # Verify all users are managed by this manager
+
                 invalid_users = users.exclude(manager=user)
                 if invalid_users.exists():
                     usernames = ", ".join([u.username for u in invalid_users])
@@ -182,7 +161,6 @@ class ProjetViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied(
                     "Only managers and admins can assign users to projects")
 
-            # Clear existing assignments and add new ones
             project.users.clear()
             project.users.add(*users)
 
@@ -203,40 +181,21 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     serializer_class = SaisieTempsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    # def get_queryset(self):
-    #     user = self.request.user
-    #     base_queryset = SaisieTemps.objects.select_related('user', 'projet')
-
-    #     # For monthly and report actions, managers can see their managed users' entries
-    #     if self.action in ['monthly', 'report'] and user.is_staff:
-    #         return base_queryset.filter(
-    #             models.Q(user__manager=user) |  # Users they manage
-    #             models.Q(user=user)             # Their own entries
-    #         )
-
-    #     # For regular CRUD operations (create, update, delete), users (including managers) only operate on their own entries
-    #     if user.is_superuser:
-    #         return base_queryset.all()
-    #     return base_queryset.filter(user=user)
 
     def get_queryset(self):
         user = self.request.user
         base_queryset = SaisieTemps.objects.select_related('user', 'projet')
 
         if user.is_superuser:
-            # ✅ L'admin voit toutes les saisies de temps
             return base_queryset.all()
 
         elif user.is_staff:
-            # ✅ Un manager voit seulement :
-            # - Ses propres saisies
-            # - Celles des utilisateurs qui lui sont rattachés
             return base_queryset.filter(
-                models.Q(user=user) |  # Ses propres saisies
-                models.Q(user__manager=user)  # Celles de ses utilisateurs
+                models.Q(user=user) |  
+                models.Q(user__manager=user)  
             )
 
-    # ✅ Un utilisateur classique ne voit que ses propres saisies
+
         return base_queryset.filter(user=user)
 
     def create(self, request, *args, **kwargs):
