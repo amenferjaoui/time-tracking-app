@@ -18,13 +18,12 @@ export default function Navigation({ user, onLogout }: Props) {
 
   return (
     <nav className="navigation">
-      <div className="nav-brand">
-        <Link to="/" className="brand-link">Time Tracking</Link>
-      </div>
-      
-      {user && (
-        <div className="nav-content">
-          <div className="nav-user">
+      <div className="nav-header">
+        <div className="nav-brand">
+          <Link to="/" className="brand-link">Time Tracking</Link>
+        </div>
+        {user && (
+          <div className="nav-user-actions">
             <span className="username">{user.username}</span>
             <span className="role">({user.role})</span>
           </div>
@@ -67,6 +66,29 @@ export default function Navigation({ user, onLogout }: Props) {
             <button onClick={handleLogout} className="logout-button">
               Déconnexion
             </button>
+          </div>
+        )}
+      </div>
+
+      {user && (
+        <div className="nav-links-container">
+          <div className="nav-links">
+            <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
+              Feuille de temps
+            </Link>
+            <Link to="/report" className={`nav-link ${isActive('/report') ? 'active' : ''}`}>
+              Rapport mensuel
+            </Link>
+            {(user.role === 'manager' || user.role === 'admin') && (
+              <Link to="/projects" className={`nav-link ${isActive('/projects') ? 'active' : ''}`}>
+                Projets
+              </Link>
+            )}
+            {user.role === 'admin' && (
+              <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>
+                Gestion des utilisateurs
+              </Link>
+            )}
           </div>
         </div>
       )}
