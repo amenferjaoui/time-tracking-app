@@ -233,13 +233,90 @@
   cursor: not-allowed;
 }
 
-.error-message {
+/* Timesheet specific styles */
+.timesheet-container {
+  margin: 20px;
+  position: relative;
+}
+
+.timesheet-controls {
+  margin-bottom: 20px;
+}
+
+.week-navigation {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: center;
+}
+
+.week-label {
+  font-weight: 600;
+  min-width: 200px;
   text-align: center;
-  font-size: 14px;
-  color: #dc3545;
-  margin-top: 8px;
-  background: #fff5f5;
+}
+
+.timesheet-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 20px;
+}
+
+.project-column {
+  min-width: 150px;
+}
+
+.day-column {
+  min-width: 100px;
+  text-align: center;
+}
+
+.hours-cell {
   padding: 8px;
-  border-radius: 6px;
+  position: relative;
+  vertical-align: top;
+}
+
+.hours-cell.error {
+  background-color: #fff5f5;
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 60px;
+}
+
+.hours-input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.hours-input::placeholder {
+  color: #999;
+  opacity: 0.5;
+}
+
+.hours-input:focus {
+  outline: none;
+  border-color: #4CAF50;
+}
+
+.hours-input:focus::placeholder {
+  opacity: 0.3;
+}
+
+.error-message {
+  font-size: 12px;
+  color: #dc3545;
+  background-color: #fff5f5;
+  padding: 4px;
+  border-radius: 4px;
+  text-align: center;
+  margin-top: 4px;
   border: 1px solid #ffb3b3;
 }

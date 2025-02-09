@@ -163,7 +163,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
 
       <div className="report-summary">
         <div className="summary-item">
-          <span className="label">Total des heures :</span>
+          <span className="label">Total des jours :</span>
           <span className="value">{totalHours}</span>
         </div>
         <div className="summary-item">
@@ -181,7 +181,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Heures</th>
+                <th>Temps travaillé</th>
               </tr>
             </thead>
             <tbody>
