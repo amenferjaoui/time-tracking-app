@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
-import { User } from "../types";
-import { timeEntriesApi } from "../services/api";
+import { TimeEntry, Project } from "../types";
+import { projectsApi, timeEntriesApi } from "../services/api";
 import "./../styles/table.css";
-import TimeSheetTable from "./TimeSheetTable";
 
 interface Props {
-  user: User;
+  userId: number;
 }
 
-export default function TimeEntryTable({ user }: Props) {
-  const [, setError] = useState<string | null>(null);
-  const [selectedUserId, setSelectedUserId] = useState<number>(user.id);
-  const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
+interface TimeEntryMap {
+  [key: string]: {
+    temps: number;
+    entryId?: number;
+    saving?: boolean;
+    error?: string;
+  };
+}
 
 export default function TimeEntryTable({ userId }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -27,7 +30,6 @@ export default function TimeEntryTable({ userId }: Props) {
   });
   const [currentWeek, setCurrentWeek] = useState<Date[]>([]);
 
-  // Récupérer la liste des utilisateurs assignés (si c'est un manager)
   useEffect(() => {
     if (!selectedDate || isNaN(selectedDate.getTime())) {
       console.error("Invalid selected date");
@@ -339,5 +341,4 @@ export default function TimeEntryTable({ userId }: Props) {
       </table>
     </div>
   );
-  
 }

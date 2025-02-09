@@ -70,21 +70,14 @@ const timeEntriesApi = {
     return response;
   },
   create: async (entry: Omit<TimeEntry, 'id' | 'created_at' | 'updated_at'>) => {
-    console.log('create');
-    console.log(entry);
     const response = await axiosInstance.post<TimeEntry>('/saisie-temps/', entry);
     return response;
   },
   update: async (id: number, entry: Partial<TimeEntry>) => {
-    console.log('update');
-    console.log(entry);
-    console.log(id);
     const response = await axiosInstance.patch<TimeEntry>(`/saisie-temps/${id}/`, entry);
     return response;
   },
   delete: async (id: number) => {
-    console.log('delete');
-    console.log(id);
     const response = await axiosInstance.delete(`/saisie-temps/${id}/`);
     return response;
   },

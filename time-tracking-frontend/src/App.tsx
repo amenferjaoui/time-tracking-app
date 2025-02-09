@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { User, Project } from "./types";
+import { User, Project, TimeEntry } from "./types";
 import { authApi, projectsApi } from "./services/api";
 import Navigation from "./components/Navigation";
 import Login from "./components/Login";
@@ -41,7 +41,7 @@ function ProtectedRoute({ children, user, requiredRole, adminOnly }: ProtectedRo
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -117,7 +117,7 @@ export default function App() {
                   <ProtectedRoute user={user}>
                     <div className="content-section">
                       <h2>Saisie des temps</h2>
-                      <TimeEntryTable user={user} />
+                      <TimeEntryTable userId={user.id} />
                     </div>
                   </ProtectedRoute>
                 ) : (
