@@ -26,43 +26,6 @@ export default function Navigation({ user, onLogout }: Props) {
           <div className="nav-user-actions">
             <span className="username">{user.username}</span>
             <span className="role">({user.role})</span>
-          </div>
-          
-          <div className="nav-links">
-            {/* Common links for all users */}
-            <Link 
-              to="/" 
-              className={`nav-link ${isActive('/') ? 'active' : ''}`}
-            >
-              Feuille de temps
-            </Link>
-            <Link 
-              to="/report" 
-              className={`nav-link ${isActive('/report') ? 'active' : ''}`}
-            >
-              Rapport mensuel
-            </Link>
-
-            {/* Manager specific links */}
-            {(user.role === 'manager' || user.role === 'admin') && (
-              <Link 
-                to="/projects" 
-                className={`nav-link ${isActive('/projects') ? 'active' : ''}`}
-              >
-                Projets
-              </Link>
-            )}
-
-            {/* Admin and Manager specific links */}
-            {(user.role === 'admin' || user.role === 'manager') && (
-              <Link 
-                to="/admin/users" 
-                className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}
-              >
-                Gestion des utilisateurs
-              </Link>
-            )}
-
             <button onClick={handleLogout} className="logout-button">
               Déconnexion
             </button>
@@ -70,7 +33,7 @@ export default function Navigation({ user, onLogout }: Props) {
         )}
       </div>
 
-      {user && (
+     {user && (
         <div className="nav-links-container">
           <div className="nav-links">
             <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
@@ -84,7 +47,7 @@ export default function Navigation({ user, onLogout }: Props) {
                 Projets
               </Link>
             )}
-            {user.role === 'admin' && (
+            {(user.role === 'admin' || user.role === 'manager') && (
               <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>
                 Gestion des utilisateurs
               </Link>
