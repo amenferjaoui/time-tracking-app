@@ -21,9 +21,6 @@ export default function TimeEntryTable({ user }: Props) {
       const fetchAssignedUsers = async () => {
         try {
           const response = await timeEntriesApi.getAssignedUsers(user.id);
-          console.log(user.id);
-          console.log();
-          console.log(response.data);
           setAssignedUsers(response.data);
         } catch (error) {
           console.error(error);
