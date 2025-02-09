@@ -8,7 +8,7 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = User
@@ -22,10 +22,11 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        password = validated_data.pop('password', None)
+        if 'password' not in validated_data:
+            raise serializers.ValidationError({'password': 'Password is required when creating a user'})
+        password = validated_data.pop('password')
         user = User(**validated_data)
-        if password:
-            user.set_password(password)  # Hashage ici
+        user.set_password(password)  # Hashage ici
         user.save()
         return user
 
@@ -36,10 +37,25 @@ class UserSerializer(serializers.ModelSerializer):
         return super().update(instance, validated_data)
 
     def validate_manager(self, value):
-        if value and not value.is_staff:
-            raise serializers.ValidationError(
-                "Le manager assigné doit être un staff member (manager ou admin)")
-        return value
+        if not value:
+            return value
+            
+        # If we got a User object
+        if isinstance(value, User):
+            if not value.is_staff:
+                raise serializers.ValidationError(
+                    "Le manager assigné doit être un staff member (manager ou admin)")
+            return value
+            
+        # If we got an ID
+        try:
+            manager = User.objects.get(id=value)
+            if not manager.is_staff:
+                raise serializers.ValidationError(
+                    "Le manager assigné doit être un staff member (manager ou admin)")
+            return manager
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Manager spécifié n'existe pas")
 
     def validate(self, data):
         # Seul un superuser peut créer/modifier d'autres superusers
@@ -152,52 +168,40 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
             'description': {'required': False}
         }
 
-    # def validate(self, data):
-    #     # Vérifier que l'utilisateur a accès au projet
-    #     user = self.context['request'].user
-    #     projet = data['projet']
-    #     if not user.is_staff and projet.manager != user.manager:
-    #         # Vérifier si l'utilisateur est assigné à ce manager
-    #         if not user.manager or user.manager != projet.manager:
-    #             raise serializers.ValidationError(
-    #                 "Vous n'avez pas accès à ce projet")
-    #     return data
-
-    from django.db.models import Sum
-
-
-class SaisieTempsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SaisieTemps
-        fields = ('id', 'user', 'projet', 'date', 'temps', 'description')
-        read_only_fields = ('id', 'user')
-        extra_kwargs = {
-            'description': {'required': False}
-        }
-
     def validate(self, data):
         user = self.context['request'].user
-        date = data['date']
-        new_temps = data['temps']
-        projet = data['projet']
+        
+        # For partial updates (PATCH), use instance values if not in data
+        if self.instance:
+            date = data.get('date', self.instance.date)
+            new_temps = data.get('temps', self.instance.temps)
+            projet = data.get('projet', self.instance.projet)
+        else:
+            date = data['date']
+            new_temps = data['temps']
+            projet = data['projet']
 
-        # Vérifier que l'utilisateur a accès au projet (règle existante)
-        if not user.is_staff and projet.manager != user.manager:
-            if not user.manager or user.manager != projet.manager:
-                raise serializers.ValidationError(
-                    "Vous n'avez pas accès à ce projet.")
+        # Vérifier que l'utilisateur a accès au projet
+        if not user.is_staff and not projet.users.filter(id=user.id).exists():
+            raise serializers.ValidationError(
+                "Vous n'avez pas accès à ce projet. Contactez votre manager pour obtenir l'accès.")
 
-        # Calculer le temps total déjà enregistré pour cet utilisateur à cette date
-        total_temps = SaisieTemps.objects.filter(
-            user=user, date=date
-        ).exclude(id=self.instance.id if self.instance else None).aggregate(
-            total=Sum('temps')
-        )['total'] or 0  # Si aucune entrée trouvée, total = 0
+        # Si on met à jour une entrée existante avec la même valeur, pas besoin de validation
+        if self.instance and self.instance.temps == new_temps:
+            return data
+
+        # Calculer le temps total pour cette date en excluant l'entrée actuelle
+        queryset = SaisieTemps.objects.filter(user=user, date=date)
+        if self.instance:
+            queryset = queryset.exclude(id=self.instance.id)
+        
+        total_temps = queryset.aggregate(total=Sum('temps'))['total'] or 0
 
         # Vérifier que la nouvelle saisie ne dépasse pas 1.0 jour
         if total_temps + new_temps > 1.0:
             raise serializers.ValidationError(
-                f"La somme totale du temps ne peut pas dépasser 1 journée pour {date}."
+                f"Le temps total ({total_temps + new_temps}) ne peut pas dépasser 1 journée. "
+                f"Vous avez déjà saisi {total_temps} jour(s) pour cette date."
             )
 
         return data

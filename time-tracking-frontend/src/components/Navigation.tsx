@@ -33,7 +33,7 @@ export default function Navigation({ user, onLogout }: Props) {
         )}
       </div>
 
-      {user && (
+     {user && (
         <div className="nav-links-container">
           <div className="nav-links">
             <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
@@ -47,7 +47,7 @@ export default function Navigation({ user, onLogout }: Props) {
                 Projets
               </Link>
             )}
-            {user.role === 'admin' && (
+            {(user.role === 'admin' || user.role === 'manager') && (
               <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>
                 Gestion des utilisateurs
               </Link>

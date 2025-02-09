@@ -33,7 +33,9 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
       const fetchAssignedUsers = async () => {
         try {
           const response = await timeEntriesApi.getAssignedUsers(user.id);
-          setAssignedUsers(response.data);
+          // Filter out the current user from assigned users to avoid duplicate
+          const filteredUsers = response.data.filter(assignedUser => assignedUser.id !== user.id);
+          setAssignedUsers(filteredUsers);
         } catch (error) {
           console.error(error);
           setError("Échec du chargement des utilisateurs assignés.");
