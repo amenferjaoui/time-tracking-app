@@ -141,10 +141,31 @@ export default function TimeEntryTable({ userId }: Props) {
     });
   };
 
+  const [editingValue, setEditingValue] = useState<string>("");
+  const [isEditing, setIsEditing] = useState<string>("");
+
+  const formatHours = (value: number | string): string => {
+    if (value === "" || value === undefined) return "";
+    const number = typeof value === "string" ? parseFloat(value.replace(",", ".")) : value;
+    if (isNaN(number)) return "";
+    return number.toFixed(2).replace(".", ",");
+  };
+
   const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
-    const hours = newValue === "" ? 0 : parseFloat(newValue);
+    // Allow typing numbers, dot and comma
+    if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
+    
     const dateStr = date.toISOString().split("T")[0];
     const key = `${projectId}-${dateStr}`;
+    setEditingValue(newValue);
+    setIsEditing(key);
+
+    // If empty or still typing decimal, don't process yet
+    if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
+      return;
+    }
+
+    const hours = parseFloat(newValue.replace(",", "."));
     const existingEntry = timeEntries[key];
     if (existingEntry?.temps === hours) return;
 
@@ -227,12 +248,15 @@ export default function TimeEntryTable({ userId }: Props) {
                 return (
                   <td key={dateStr} className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error ? "error" : ""}`}>
                     <input
-                      type="number"
-                      min="0"
-                      max="1"
-                      step="0.5"
-                      value={entry?.temps ?? ""}
+                      type="text"
+                      inputMode="decimal"
+                      pattern="[0-9]*[,.]?[0-9]*"
+                      value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
                       onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
+                      onBlur={() => {
+                        setIsEditing("");
+                        setEditingValue("");
+                      }}
                       className="hours-input"
                       title={entry?.error}
                     />
