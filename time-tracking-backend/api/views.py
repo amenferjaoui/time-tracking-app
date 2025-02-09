@@ -57,8 +57,8 @@ class UserViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if user.is_superuser:  # Admin voit tout
             return User.objects.all()
-        elif user.is_staff:  # Manager voit les admins, managers et ses utilisateurs gérés
-            return User.objects.filter(models.Q(is_staff=True) | models.Q(is_superuser=True) | models.Q(manager=user))
+        elif user.is_staff:  # Manager ses utilisateurs gérés
+            return User.objects.filter(manager=user)
         return User.objects.filter(id=user.id)  # User ne voit que lui-même
 
     @action(detail=False, methods=['get'])
