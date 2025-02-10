@@ -1,5 +1,12 @@
 import '@testing-library/jest-dom';
 
+declare global {
+  interface Global {
+    TextEncoder: typeof TextEncoderPolyfill;
+    TextDecoder: typeof TextDecoderPolyfill;
+  }
+}
+
 class TextEncoderPolyfill {
   encoding = 'utf-8';
   
@@ -36,5 +43,5 @@ class TextDecoderPolyfill {
   }
 }
 
-(global as any).TextEncoder = TextEncoderPolyfill;
-(global as any).TextDecoder = TextDecoderPolyfill;
+(global as Global).TextEncoder = TextEncoderPolyfill;
+(global as Global).TextDecoder = TextDecoderPolyfill;
