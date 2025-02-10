@@ -66,12 +66,11 @@ test-backend:
       done
     - echo "PostgreSQL is ready!"
     - find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
-    - python manage.py makemigrations --noinput
-    - python manage.py migrate --fake-initial
+    - python manage.py makemigrations api --noinput
+    - python manage.py migrate api --noinput
+    - python manage.py migrate --noinput
   script:
     - python manage.py test
-
-
 
 
 test-frontend:
