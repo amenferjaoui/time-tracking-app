@@ -56,6 +56,7 @@ test-backend:
   variables:
     DATABASE_HOST: postgres
   before_script:
+    - apt-get update && apt-get install -y postgresql-client
     - pip install -r time-tracking-backend/requirements.txt
     - cd time-tracking-backend
     - |
@@ -69,6 +70,7 @@ test-backend:
     - python manage.py migrate --fake-initial
   script:
     - python manage.py test
+
 
 
 
