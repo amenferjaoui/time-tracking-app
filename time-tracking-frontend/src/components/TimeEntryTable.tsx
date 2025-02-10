@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { TimeEntry, Project } from "../types";
-import { projectsApi, timeEntriesApi } from "../services/api";
+import { TimeEntry, Project, User } from "../types";
+import { projectsApi, timeEntriesApi, authApi } from "../services/api";
 import "./../styles/table.css";
 
 interface Props {
-  userId: number;
+  userId?: number;  // Optional since we'll get it from user selection for managers
 }
 
 interface TimeEntryMap {
@@ -16,10 +16,44 @@ interface TimeEntryMap {
   };
 }
 
-export default function TimeEntryTable({ userId }: Props) {
+export default function TimeEntryTable({ userId: propUserId }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryMap>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | undefined>(propUserId);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Fetch current user and their managed users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const currentUserRes = await authApi.getCurrentUser();
+        setCurrentUser(currentUserRes.data);
+        
+        if (currentUserRes.data.is_staff || currentUserRes.data.is_superuser) {
+          const usersRes = await authApi.getAllUsers();
+          const filteredUsers = currentUserRes.data.is_superuser 
+            ? usersRes.data 
+            : usersRes.data.filter((u: User) => u.manager === currentUserRes.data.id || u.id === currentUserRes.data.id);
+          setUsers(filteredUsers);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Set initial selected user
+  useEffect(() => {
+    if (propUserId) {
+      setSelectedUserId(propUserId);
+    } else if (currentUser) {
+      setSelectedUserId(currentUser.id);
+    }
+  }, [propUserId, currentUser]);
+
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     if (isNaN(today.getTime())) {
@@ -63,7 +97,7 @@ export default function TimeEntryTable({ userId }: Props) {
   }, [selectedDate]);
 
   const fetchTimeEntries = async () => {
-    if (!currentWeek || currentWeek.length < 7) {
+    if (!currentWeek || currentWeek.length < 7 || !selectedUserId) {
       console.error("Invalid week data");
       return;
     }
@@ -80,9 +114,9 @@ export default function TimeEntryTable({ userId }: Props) {
       const firstDayMonth = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, "0")}`;
       const lastDayMonth = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}`;
       
-      const promises = [timeEntriesApi.getMonthlyReport(userId, firstDayMonth)];
+      const promises = [timeEntriesApi.getMonthlyReport(selectedUserId, firstDayMonth)];
       if (firstDayMonth !== lastDayMonth) {
-        promises.push(timeEntriesApi.getMonthlyReport(userId, lastDayMonth));
+        promises.push(timeEntriesApi.getMonthlyReport(selectedUserId, lastDayMonth));
       }
       
       const responses = await Promise.all(promises);
@@ -131,7 +165,7 @@ export default function TimeEntryTable({ userId }: Props) {
       }
     };
     fetchData();
-  }, [currentWeek, userId]);
+  }, [currentWeek, selectedUserId]);
 
   const handleWeekChange = (direction: "prev" | "next") => {
     setSelectedDate((prev) => {
@@ -256,7 +290,13 @@ export default function TimeEntryTable({ userId }: Props) {
               error: undefined 
             }
           }));
-          const response = await timeEntriesApi.create({ date: dateStr, projet: projectId, temps: hours, description: "" });
+          const response = await timeEntriesApi.create({ 
+            date: dateStr, 
+            projet: projectId, 
+            temps: hours, 
+            description: "",
+            user: selectedUserId 
+          });
           setTimeEntries(prev => ({
             ...prev,
             [key]: { temps: hours, entryId: response.data.id, saving: false }
@@ -288,6 +328,21 @@ export default function TimeEntryTable({ userId }: Props) {
   return (
     <div className="timesheet-container">
       <h2>Saisie des temps</h2>
+      {currentUser?.is_staff && users.length > 0 && (
+        <div className="user-selector">
+          <label>Utilisateur : </label>
+          <select 
+            value={selectedUserId} 
+            onChange={(e) => setSelectedUserId(Number(e.target.value))}
+          >
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.username}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="timesheet-controls">
         <button className="week-button" onClick={() => handleWeekChange("prev")}>
           ← Semaine précédente

@@ -181,6 +181,10 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     serializer_class = SaisieTempsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsManagerOrAdmin()]
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -201,7 +205,18 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         mutable_data = request.data.copy() if hasattr(
             request.data, 'copy') else dict(request.data)
-        mutable_data['user'] = request.user.id
+        
+        # If no user is specified or user is not staff, use logged-in user
+        if 'user' not in mutable_data or not request.user.is_staff:
+            mutable_data['user'] = request.user.id
+        # For staff users, verify they can manage the specified user
+        elif request.user.is_staff:
+            target_user_id = int(mutable_data['user'])
+            if not request.user.is_superuser:
+                target_user = User.objects.get(id=target_user_id)
+                if target_user.manager_id != request.user.id:
+                    raise PermissionDenied("You can only create entries for your managed users")
+
         serializer = self.get_serializer(data=mutable_data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -209,7 +224,18 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+
+        # Check if user has permission to update this entry
+        if not user.is_superuser and user.is_staff:
+            if instance.user.manager_id != user.id:
+                raise PermissionDenied("You can only update entries for your managed users")
+
+        return super().update(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/monthly/(?P<month>\d{4}-\d{2})')
     def monthly(self, request, user_id=None, month=None):
