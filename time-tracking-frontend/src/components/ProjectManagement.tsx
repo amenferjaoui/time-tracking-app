@@ -34,7 +34,6 @@ export default function ProjectManagement() {
       const response = await authApi.getAllUsers();
       const allUsers = response.data;
 
-      // Filter users based on role permissions only
       const filteredUsers: User[] = allUsers.filter((user: User) => {
         if (userRole === 'admin') {
           return !user.is_superuser;
@@ -61,7 +60,6 @@ export default function ProjectManagement() {
     
       console.log('Projects response:', response.data);
 
-      // S'assurer que chaque projet a un tableau users valide
       const projectsWithUsers = response.data.map(project => {
         console.log('Project users:', project.id, project.users);
         return {
@@ -72,7 +70,6 @@ export default function ProjectManagement() {
 
       setProjects(projectsWithUsers);
 
-      // Rafraîchir les utilisateurs après avoir chargé les projets
       if (userRole) {
         await fetchRegularUsers();
       }
@@ -127,7 +124,7 @@ export default function ProjectManagement() {
       await fetchStaffUsers();
     };
     initializeData();
-  }, []);  // This effect should only run once on mount
+  }, []);  
 
   useEffect(() => {
     if (userRole) {
@@ -140,7 +137,6 @@ export default function ProjectManagement() {
       setAssignError(null);
       await projectsApi.assignUsers(projectId, selectedUserIds);
 
-      // Clear selections
       setSelectedUsers(prev => ({
         ...prev,
         [projectId.toString()]: [],

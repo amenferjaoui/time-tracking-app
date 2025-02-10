@@ -46,7 +46,7 @@
   background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
 }
 
-/* Modal Styles */
+
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -162,7 +162,7 @@
   transform: rotate(90deg);
 }
 
-/* Form inside modal */
+
 .modal-content .form-container {
   margin-top: 2rem;
 }
@@ -258,7 +258,6 @@
   box-shadow: 0 2px 8px rgba(229, 62, 62, 0.1);
 }
 
-/* User List Section */
 .user-list-section {
   background: white;
   border-radius: 16px;
@@ -267,7 +266,6 @@
   overflow: hidden;
 }
 
-/* Table Styles */
 .table-container {
   height: 100%;
   overflow: auto;
@@ -315,7 +313,6 @@ td {
   font-size: 0.95rem;
 }
 
-/* Action Buttons */
 .action-buttons {
   display: flex;
   gap: 0.5rem;
@@ -353,7 +350,6 @@ td {
   transform: translateY(-1px);
 }
 
-/* Form Styles */
 .form-container {
   display: flex;
   flex-direction: column;
@@ -397,7 +393,6 @@ td {
   cursor: not-allowed;
 }
 
-/* Form Buttons */
 .form-buttons {
   display: flex;
   gap: 1rem;
@@ -436,7 +431,7 @@ td {
   transform: translateY(-1px);
 }
 
-/* Error Message */
+
 .error-message {
   background: linear-gradient(135deg, rgba(229, 62, 62, 0.1) 0%, rgba(197, 48, 48, 0.1) 100%);
   color: #c53030;
@@ -448,7 +443,6 @@ td {
   font-weight: 500;
 }
 
-/* Loading State */
 .loading {
   display: flex;
   justify-content: center;
@@ -459,7 +453,6 @@ td {
   font-weight: 600;
 }
 
-/* Empty State */
 .no-entries {
   padding: 2rem;
   color: #64748b;
@@ -470,7 +463,6 @@ td {
   font-size: 1rem;
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
   .modal-content {
     width: 95%;

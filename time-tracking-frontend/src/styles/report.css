@@ -205,7 +205,6 @@
   border-left: 4px solid #fc8181;
 }
 
-/* Responsive design */
 @media (max-width: 768px) {
   .monthly-report {
     padding: 1.5rem;
@@ -243,7 +242,6 @@
   }
 }
 
-/* Print styles for PDF export */
 @media print {
   .monthly-report {
     box-shadow: none;

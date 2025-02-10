@@ -3,7 +3,6 @@ import { TimeEntry, Project, User, AuthResponse, RefreshResponse } from '../type
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-// Create axios instance
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -11,7 +10,6 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add token to requests
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
@@ -22,8 +20,6 @@ axiosInstance.interceptors.request.use((config) => {
 }, (error) => {
   return Promise.reject(error);
 });
-
-// Handle token refresh
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -43,7 +39,6 @@ axiosInstance.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${response.data.access}`;
           return axiosInstance(originalRequest);
         } catch {
-          // Refresh token expired, logout user
           authApi.logout();
           window.location.href = '/login';
         }
@@ -124,7 +119,6 @@ const authApi = {
     });
     localStorage.setItem('access_token', response.data.access);
     localStorage.setItem('refresh_token', response.data.refresh);
-    // Stocker les informations utilisateur
     const userData = {
       id: response.data.id,
       username: response.data.username,

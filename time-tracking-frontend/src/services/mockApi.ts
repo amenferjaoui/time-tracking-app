@@ -1,6 +1,5 @@
 import { TimeEntry, Project, User } from '../types';
 
-// Mock data
 const mockProjects: Project[] = [
   { id: 1, name: 'Website Redesign', description: 'Company website redesign project', created_by: 1 },
   { id: 2, name: 'Mobile App', description: 'Mobile application development', created_by: 1 },
@@ -21,10 +20,8 @@ const mockTimeEntries: TimeEntry[] = [
   { id: 4, date: '2024-02-02', project: 3, hours: 5, user: 4 }
 ];
 
-// Helper function to simulate API delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Mock API implementation
 export const timeEntriesApi = {
   getAssignedUsers: async (managerId: number) => {
     await delay(500);
@@ -33,13 +30,12 @@ export const timeEntriesApi = {
   },
   exportMonthlyReportPDF: async (userId: number, month: string) => {
     await delay(500);
-    // Mock PDF generation - in reality, this would generate a real PDF
     const entries = mockTimeEntries.filter(entry => {
       const entryMonth = entry.date.substring(0, 7);
       return entry.user === userId && entryMonth === month;
     });
     
-    // Return a mock PDF as a Blob
+
     const mockPdfContent = JSON.stringify(entries, null, 2);
     const blob = new Blob([mockPdfContent], { type: 'application/pdf' });
     return { data: blob };
@@ -74,7 +70,7 @@ export const timeEntriesApi = {
   getMonthlyReport: async (userId: number, month: string) => {
     await delay(500);
     const entries = mockTimeEntries.filter(entry => {
-      const entryMonth = entry.date.substring(0, 7); // YYYY-MM
+      const entryMonth = entry.date.substring(0, 7); 
       return entry.user === userId && entryMonth === month;
     });
     return { data: entries };
@@ -115,7 +111,7 @@ export const authApi = {
   login: async (username: string, password: string) => {
     await delay(500);
     const user = mockUsers.find(u => u.username === username);
-    if (!user || password !== 'password') { // Simple password check for mock data
+    if (!user || password !== 'password') { 
       throw new Error('Invalid credentials');
     }
     const token = 'mock-jwt-token';

@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect, useCallback } from "react";
 import { TimeEntry, User, Project } from "../types";
 import { timeEntriesApi, projectsApi } from "../services/api";
@@ -27,13 +25,11 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
   const [selectedUserId, setSelectedUserId] = useState<string>(user.id.toString());
   const [assignedUsers, setAssignedUsers] = useState<User[]>([]);
 
-  // Récupérer la liste des utilisateurs assignés (si c'est un manager)
   useEffect(() => {
     if (isManager) {
       const fetchAssignedUsers = async () => {
         try {
           const response = await timeEntriesApi.getAssignedUsers(user.id);
-          // Filter out the current user from assigned users to avoid duplicate
           const filteredUsers = response.data.filter(assignedUser => assignedUser.id !== user.id);
           setAssignedUsers(filteredUsers);
         } catch (error) {
@@ -45,7 +41,6 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     }
   }, [isManager, user.id]);
 
-  // Récupérer la liste des projets
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -61,7 +56,6 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     fetchProjects();
   }, [selectedUserId]);
 
-  // Récupérer les entrées de temps pour le mois sélectionné (en filtrant les zéros)
   const fetchMonthlyData = useCallback(async () => {
     try {
       setLoading(true);
@@ -69,7 +63,6 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
       const userId = parseInt(selectedUserId);
       const response = await timeEntriesApi.getMonthlyReport(userId, month);
 
-      // Filtrer les entrées de temps pour ne garder que celles avec `temps > 0`
       const filteredEntries = response.data.filter((entry: TimeEntry) => entry.temps > 0);
       setEntries(filteredEntries);
     } catch (error) {
@@ -88,10 +81,8 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     fetchMonthlyData();
   }, [selectedUserId]);
 
-  // Agréger les entrées de temps par projet
   const aggregateData = (): MonthlyData => {
     return entries.reduce((acc: MonthlyData, entry) => {
-      // Vérifier si `entry.projet` est un ID et récupérer le projet correspondant
       const project = projects.find(p => p.id === entry.projet);
       const projectName = project ? project.nom : `Projet ${entry.projet}`;
 
@@ -107,7 +98,6 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
   const totalHours = entries.reduce((sum, entry) => sum + Number(entry.temps), 0);
   const monthlyData = aggregateData();
 
-  // Exportation du rapport PDF
   const handleExportPDF = async () => {
     try {
       const response = await timeEntriesApi.exportMonthlyReportPDF(parseInt(selectedUserId), month);

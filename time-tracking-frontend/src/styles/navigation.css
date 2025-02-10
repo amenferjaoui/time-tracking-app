@@ -23,7 +23,7 @@
   padding-top: 1rem;
 }
 
-/* Brand and logo */
+
 .nav-header {
   width: 100%;
   display: flex;
@@ -71,7 +71,7 @@
   text-shadow: 0 4px 8px rgba(74, 144, 226, 0.3);
 }
 
-/* User section */
+
 .nav-user-actions {
   width: calc(100% - 3rem);
   background: linear-gradient(135deg, rgba(52, 73, 94, 0.7) 0%, rgba(44, 62, 80, 0.7) 100%);
@@ -111,7 +111,6 @@
   letter-spacing: 0.3px;
 }
 
-/* Navigation links */
 .nav-links-container {
   width: 100%;
   padding: 0 1.5rem;
@@ -173,7 +172,7 @@
   transform: scaleY(1);
 }
 
-/* Logout button */
+
 .logout-button {
   width: calc(100% - 3rem);
   background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
@@ -207,7 +206,7 @@
   box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
 }
 
-/* Main content adjustment */
+
 .app-container {
   display: flex;
 }
@@ -218,7 +217,7 @@
   padding: 2rem;
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
   .navigation {
     width: 260px;

@@ -121,7 +121,7 @@ button:disabled {
   font-size: 14px;
 }
 
-/* Responsive design */
+
 @media (max-width: 768px) {
   .form-container {
     margin: 12px;

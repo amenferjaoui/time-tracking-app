@@ -1,4 +1,4 @@
-/* Reset and base styles */
+
 * {
   margin: 0;
   padding: 0;
@@ -12,7 +12,6 @@ body {
   background-color: #f5f6fa;
 }
 
-/* Layout */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -23,11 +22,11 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* Centre verticalement */
-  align-items: center; /* Centre horizontalement */
+  justify-content: center; 
+  align-items: center; 
   padding: 2rem;
   max-width: 1200px;
-  margin: auto; /* Centre horizontalement */
+  margin: auto; 
   width: 100%;
 }
 
@@ -40,7 +39,7 @@ body {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Typography */
+
 h1, h2, h3, h4, h5, h6 {
   color: #2c3e50;
   margin-bottom: 1rem;
@@ -54,7 +53,7 @@ h2 {
   font-size: 1.5rem;
 }
 
-/* Utility classes */
+
 .loading {
   display: flex;
   justify-content: center;
@@ -73,7 +72,7 @@ h2 {
   text-align: center;
 }
 
-/* Responsive design */
+
 @media (max-width: 768px) {
   .main-content {
     padding: 1rem;
@@ -92,7 +91,6 @@ h2 {
   }
 }
 
-/* Animations */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -108,12 +106,12 @@ h2 {
   animation: fadeIn 0.3s ease-out;
 }
 
-/* Form elements global styles */
+
 input, select, button {
   font-family: inherit;
 }
 
-/* Scrollbar styling */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -132,7 +130,7 @@ input, select, button {
   background: #555;
 }
 
-/* New styles for better UX */
+
 .app-container {
   background: linear-gradient(135deg, #ece9e6, #ffffff);
 }
@@ -164,22 +162,22 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Modifications demandées */
+
 .navbar {
-  background-color: #1f3b63; /* Bleu foncé neutre */
+  background-color: #1f3b63; 
 }
 
 .logout-button {
-  background-color: #007bff; /* Bleu par défaut */
+  background-color: #007bff; 
   transition: background-color 0.2s;
 }
 
 .logout-button:hover {
-  background-color: #ff4500; /* Orange/Rouge au survol */
+  background-color: #ff4500;
 }
 
 .user-box {
-  background-color: rgba(138, 43, 226, 0.2); /* Bleu/Violet clair et transparent */
+  background-color: rgba(138, 43, 226, 0.2); 
   padding: 1rem;
   border-radius: 6px;
 }

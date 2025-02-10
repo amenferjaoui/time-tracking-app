@@ -42,7 +42,6 @@ export default function UserManagement({ currentUser }: Props) {
       const response = await authApi.getAllUsers();
       const allUsers = response.data;
       
-      // Si c'est un manager, on ne montre que ses utilisateurs
       const filteredUsers = currentUser.role === 'manager' 
         ? allUsers.filter(user => user.manager === currentUser.id || user.id === currentUser.id)
         : allUsers;
@@ -61,7 +60,6 @@ export default function UserManagement({ currentUser }: Props) {
     e.preventDefault();
     try {
       setError(null);
-      // Prepare base data
       const baseData = {
         username: formData.username,
         email: formData.email,
@@ -71,19 +69,18 @@ export default function UserManagement({ currentUser }: Props) {
         manager: currentUser.role === 'manager' && formData.role === 'user' ? currentUser.id : formData.manager
       };
 
-      // Add password only if it's not empty or if creating new user
       const userData = !editingUser || formData.password
         ? { ...baseData, password: formData.password }
         : baseData;
 
       if (editingUser) {
         await authApi.updateUser(editingUser.id, userData);
-        await fetchUsers(); // Refresh both users and potential managers
+        await fetchUsers(); 
         setEditingUser(null);
         setShowModal(false);
       } else {
         await authApi.createUser(userData);
-        await fetchUsers(); // Refresh both users and potential managers
+        await fetchUsers();
         setShowModal(false);
       }
       setFormData({
@@ -118,7 +115,7 @@ export default function UserManagement({ currentUser }: Props) {
     setEditingUser(user);
     setFormData({
       username: user.username,
-      password: '', // Ne pas afficher le mot de passe existant
+      password: '', 
       email: user.email || '',
       role: user.role,
       manager: user.manager,
@@ -134,7 +131,7 @@ export default function UserManagement({ currentUser }: Props) {
 
     try {
       await authApi.deleteUser(id);
-      await fetchUsers(); // Refresh both users and potential managers lists
+      await fetchUsers(); 
     } catch (error: unknown) {
       console.error(error);
       const apiError = error as ApiError;
@@ -162,7 +159,6 @@ export default function UserManagement({ currentUser }: Props) {
     setFormData({
       ...formData,
       role,
-      // Clear manager if changing to admin or manager
       manager: role === 'admin' || role === 'manager' ? undefined : formData.manager
     });
   };

@@ -23,7 +23,7 @@ export interface User {
   id: number;
   username: string;
   email?: string;
-  role: 'admin' | 'manager' | 'user';  // Mis à jour pour correspondre au backend
+  role: 'admin' | 'manager' | 'user';  
   manager?: number;
   is_superuser: boolean;
   is_staff: boolean;

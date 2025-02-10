@@ -4,7 +4,7 @@ import { projectsApi, timeEntriesApi, authApi } from "../services/api";
 import "./../styles/table.css";
 
 interface Props {
-  userId?: number;  // Optional since we'll get it from user selection for managers
+  userId?: number;  
 }
 
 interface TimeEntryMap {
@@ -24,7 +24,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
   const [selectedUserId, setSelectedUserId] = useState<number | undefined>(propUserId);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Fetch current user and their managed users
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -45,7 +44,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     fetchUsers();
   }, []);
 
-  // Set initial selected user
   useEffect(() => {
     if (propUserId) {
       setSelectedUserId(propUserId);
@@ -103,11 +101,9 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     }
 
     try {
-      // Get all time entries
       const allEntriesRes = await timeEntriesApi.getAll();
       const entriesMap: TimeEntryMap = {};
       
-      // Filter entries for the selected user
       allEntriesRes.data
         .filter((entry: TimeEntry) => entry.user === selectedUserId)
         .forEach((entry: TimeEntry) => {
@@ -121,7 +117,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     }
   };
 
-  // Fetch projects when component mounts or selected user changes
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -138,7 +133,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     fetchProjects();
   }, [selectedUserId]);
 
-  // Fetch time entries whenever currentWeek or selectedUser changes
   useEffect(() => {
     const fetchData = async () => {
       if (!currentWeek || currentWeek.length < 7 || !selectedUserId) {
@@ -147,7 +141,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
 
       setIsLoading(true);
       try {
-        // Fetch time entries for the selected user
         await fetchTimeEntries();
       } catch (error) {
         console.error("Error fetching time entries:", error);
@@ -161,7 +154,7 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
   const handleWeekChange = (direction: "prev" | "next") => {
     setSelectedDate((prev) => {
       const newDate = new Date(prev);
-      newDate.setDate(prev.getDate() - prev.getDay() + (direction === "next" ? 8 : -6)); // Aller au lundi suivant ou précédent
+      newDate.setDate(prev.getDate() - prev.getDay() + (direction === "next" ? 8 : -6)); 
       return newDate;
     });
   };
@@ -189,13 +182,11 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     };
 
     const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
-      // Allow typing numbers, dot and comma
       if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
       
       const dateStr = date.toISOString().split("T")[0];
       const key = `${projectId}-${dateStr}`;
 
-      // Store previous value when starting to edit
       if (isEditing !== key) {
         const entry = timeEntries[key];
         setPreviousValue(entry?.temps ? formatHours(entry.temps) : "");
@@ -205,20 +196,17 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
       setIsEditing(key);
       setShowError(true);
 
-      // If empty or still typing decimal, don't process yet
       if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
         return;
       }
 
       const hours = parseFloat(newValue.replace(",", "."));
       const existingEntry = timeEntries[key];
-      
-      // If value hasn't changed, do nothing
+
       if (existingEntry?.temps === hours) {
         return;
       }
 
-      // Validate input value first
       if (![0, 0.5, 1].includes(hours)) {
         const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
         setEditingValue(restoredValue);
@@ -233,7 +221,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
         return;
       }
 
-      // Then validate total time for this day
       const dayTotal = calculateDayTotal(dateStr, projectId);
       if (dayTotal + hours > 1.0) {
         const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
@@ -251,7 +238,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
 
       try {
         if (hours === 0 && existingEntry?.entryId) {
-          // Set saving state before API call
           setTimeEntries(prev => ({
             ...prev,
             [key]: { 
@@ -267,7 +253,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
             return updatedEntries;
           });
         } else if (existingEntry?.entryId) {
-          // Set saving state before API call
           setTimeEntries(prev => ({
             ...prev,
             [key]: { 
@@ -282,7 +267,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
             [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
           }));
         } else if (hours > 0) {
-          // Set saving state before API call
           setTimeEntries(prev => ({
             ...prev,
             [key]: { 
@@ -321,7 +305,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
             error: errorMessage 
           }
         }));
-        // Restore the previous value in the input
         const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
         setEditingValue(restoredValue);
       }
@@ -403,13 +386,11 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
                         value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
                         onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
                         onBlur={(e) => {
-                          // Only reset if clicking outside the input
                           if (!e.relatedTarget || !e.relatedTarget.classList.contains('hours-input')) {
                             setIsEditing("");
                             setEditingValue("");
                             setShowError(false);
                             
-                            // If there was an error, restore the previous value
                             if (entry?.error) {
                               const key = `${project.id}-${dateStr}`;
                               setTimeEntries(prev => ({

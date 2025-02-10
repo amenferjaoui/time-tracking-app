@@ -1,4 +1,3 @@
-/* Container styles */
 .timesheet-container {
   padding: 2rem;
   background: white;
@@ -6,7 +5,6 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-/* Header styles */
 .timesheet-header {
   display: flex;
   justify-content: space-between;
@@ -52,7 +50,6 @@
   color: #2d3436;
 }
 
-/* Table styles */
 .timesheet-table {
   width: 100%;
   border-collapse: separate;
@@ -96,7 +93,6 @@
   min-width: 150px;
 }
 
-/* Cell styles */
 .hours-cell {
   position: relative;
   transition: all 0.3s ease;
@@ -143,7 +139,6 @@
   border-color: #ff4757;
 }
 
-/* Error message styles */
 .error-message {
   font-size: 12px;
   color: #dc3545;
@@ -165,7 +160,6 @@
   background-color: #fff5f5;
 }
 
-/* Saving indicator */
 .saving-indicator {
   position: absolute;
   top: 50%;
@@ -185,7 +179,6 @@
   }
 }
 
-/* User selector styles */
 .user-selector {
   display: flex;
   align-items: center;
@@ -223,7 +216,6 @@
   box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.2);
 }
 
-/* Loading indicator */
 .loading-indicator {
   text-align: center;
   padding: 2rem;
