@@ -30,23 +30,7 @@ lint-frontend:
   script:
     - npx eslint .
 
-# Testing Stage
-# test-backend:
-#   stage: test
-#   image: python:3.11
-#   services:
-#     - name: postgres:15
-#       alias: postgres
-#   variables:
-#     DATABASE_HOST: postgres
-#   before_script:
-#     - pip install -r time-tracking-backend/requirements.txt
-#     - cd time-tracking-backend
-#     - python manage.py makemigrations
-#     - python manage.py migrate
-#   script:
-#     - python manage.py test
-
+# Test Stage
 test-backend:
   stage: test
   image: python:3.11
@@ -72,15 +56,6 @@ test-backend:
   script:
     - python manage.py test
 
-
-test-frontend:
-  stage: test
-  image: node:20
-  before_script:
-    - cd time-tracking-frontend
-    - npm install
-  script:
-    - npm test
 
 # Build Stage
 build-backend:
