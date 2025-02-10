@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Project, User } from "../types";
 import { projectsApi, authApi } from "../services/api";
 import "../styles/form.css";
@@ -28,20 +28,31 @@ export default function ProjectManagement() {
   const [selectedUsers, setSelectedUsers] = useState<{ [key: string]: number[] }>({});
   const [assignError, setAssignError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const initializeData = async () => {
-      await fetchUserRole();
-      await fetchProjects();
-      await fetchStaffUsers();
-    };
-    initializeData();
-  }, []);
+  const fetchRegularUsers = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, users: true }));
+      const response = await authApi.getAllUsers();
+      const allUsers = response.data;
 
-  useEffect(() => {
-    if (userRole) {
-      fetchRegularUsers();
+      // Filter users based on role permissions only
+      const filteredUsers: User[] = allUsers.filter((user: User) => {
+        if (userRole === 'admin') {
+          return !user.is_superuser;
+        } else if (userRole === 'manager' && currentUser) {
+          return !user.is_superuser && user.manager === currentUser.id;
+        }
+        return false;
+      });
+
+      setRegularUsers(filteredUsers);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement des utilisateurs.";
+      console.error(errorMessage);
+      setError("Impossible de charger les utilisateurs.");
+    } finally {
+      setLoading(prev => ({ ...prev, users: false }));
     }
-  }, [userRole, currentUser?.id]);
+  }, [userRole, currentUser]);
 
   const fetchProjects = async () => {
     try {
@@ -82,8 +93,8 @@ export default function ProjectManagement() {
       if (response.data.role === "manager") {
         setFormData((prev) => ({ ...prev, manager: response.data.id }));
       }
-    } catch (error) {
-      console.error("Erreur lors de la récupération du rôle utilisateur.");
+    } catch (err) {
+      console.error("Erreur lors de la récupération du rôle utilisateur:", err);
     }
   };
 
@@ -103,35 +114,26 @@ export default function ProjectManagement() {
         const manager = response.data.find(user => user.id === project.manager);
         console.log(`Found manager:`, manager);
       });
-    } catch (error) {
-      console.error("Erreur lors du chargement des managers.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors du chargement des managers.";
+      console.error(errorMessage);
     }
   };
 
-  const fetchRegularUsers = async () => {
-    try {
-      setLoading(prev => ({ ...prev, users: true }));
-      const response = await authApi.getAllUsers();
-      const allUsers = response.data;
+  useEffect(() => {
+    const initializeData = async () => {
+      await fetchUserRole();
+      await fetchProjects();
+      await fetchStaffUsers();
+    };
+    initializeData();
+  }, []);  // This effect should only run once on mount
 
-      // Filter users based on role permissions only
-      const filteredUsers: User[] = allUsers.filter((user: User) => {
-        if (userRole === 'admin') {
-          return !user.is_superuser;
-        } else if (userRole === 'manager' && currentUser) {
-          return !user.is_superuser && user.manager === currentUser.id;
-        }
-        return false;
-      });
-
-      setRegularUsers(filteredUsers);
-    } catch (error) {
-      console.error("Erreur lors du chargement des utilisateurs.");
-      setError("Impossible de charger les utilisateurs.");
-    } finally {
-      setLoading(prev => ({ ...prev, users: false }));
+  useEffect(() => {
+    if (userRole) {
+      fetchRegularUsers();
     }
-  };
+  }, [userRole, currentUser?.id, fetchRegularUsers]);
 
   const handleUserAssignment = async (projectId: number, selectedUserIds: number[]) => {
     try {
@@ -155,9 +157,11 @@ export default function ProjectManagement() {
         )
       );
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
-      const errorMessage = error.response?.data?.error || "Erreur lors de l'assignation des utilisateurs.";
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Erreur lors de l'assignation des utilisateurs.";
       setAssignError(errorMessage);
     }
   };
