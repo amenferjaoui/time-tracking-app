@@ -42,6 +42,7 @@ test-backend:
   before_script:
     - pip install -r time-tracking-backend/requirements.txt
     - cd time-tracking-backend
+    - python manage.py makemigrations
     - python manage.py migrate
   script:
     - python manage.py test
