@@ -243,7 +243,7 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
         [key]: { 
           ...prev[key], 
           temps: existingEntry?.temps || 0,
-          error: `Le temps total (${dayTotal + hours}) ne peut pas dépasser 1 journée. Vous avez déjà saisi ${dayTotal} jour(s) pour cette date.`
+          error: `Le temps total (${dayTotal + hours}) ne peut pas dépasser 1 journée .`
         }
       }));
       return;
@@ -304,18 +304,32 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
         }));
       }
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error 
-        ? error.message 
-        : "Échec de l'enregistrement";
-      setTimeEntries(prev => ({
-        ...prev,
-        [key]: { 
-          ...prev[key], 
-          temps: existingEntry?.temps || 0,
-          saving: false, 
-          error: errorMessage 
-        }
-      }));
+      // Check if it's a time limit error (status 400)
+      if (error instanceof Error && 'response' in error && (error as any).response?.status === 400) {
+        const dayTotal = calculateDayTotal(dateStr, projectId);
+        setTimeEntries(prev => ({
+          ...prev,
+          [key]: { 
+            ...prev[key], 
+            temps: existingEntry?.temps || 0,
+            saving: false, 
+            error: `Le temps total ne peut pas dépasser 1 journée .`
+          }
+        }));
+      } else {
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : "Échec de l'enregistrement";
+        setTimeEntries(prev => ({
+          ...prev,
+          [key]: { 
+            ...prev[key], 
+            temps: existingEntry?.temps || 0,
+            saving: false, 
+            error: errorMessage 
+          }
+        }));
+      }
       // Restore the previous value in the input
       const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
       setEditingValue(restoredValue);
