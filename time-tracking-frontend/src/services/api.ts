@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { TimeEntry, Project, User, AuthResponse, RefreshResponse } from '../types';
 
-const API_URL = process.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance
 const axiosInstance = axios.create({
@@ -109,7 +109,7 @@ const projectsApi = {
     return response;
   },
   assignUsers: async (projectId: number, userIds: number[]) => {
-    const response = await axiosInstance.post<{message: string}>(`/projets/${projectId}/assign-users/`, {
+    const response = await axiosInstance.post<{ message: string }>(`/projets/${projectId}/assign-users/`, {
       user_ids: userIds
     });
     return response;
