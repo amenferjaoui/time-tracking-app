@@ -99,10 +99,16 @@ class ProjetViewSet(viewsets.ModelViewSet):
         requested_user_id = self.request.query_params.get('user')
         
         if requested_user_id:
-            # If a specific user is requested, return only projects assigned to that user
-            return base_queryset.filter(users__id=requested_user_id).distinct()
+            requested_user = User.objects.get(id=requested_user_id)
+            # If requested user is a manager, return projects they manage OR are assigned to
+            if requested_user.is_staff:
+                return base_queryset.filter(
+                    models.Q(manager=requested_user) | models.Q(users=requested_user)
+                ).distinct()
+            # For regular users, return only projects they're assigned to
+            return base_queryset.filter(users=requested_user).distinct()
         
-        # Otherwise, use the default permission logic
+        # No specific user requested, use default permission logic
         if user.is_superuser:
             return base_queryset.all()
         elif user.is_staff:
@@ -190,8 +196,6 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_permissions(self):
-        if self.action in ['update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated(), IsManagerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
@@ -213,17 +217,39 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         mutable_data = request.data.copy() if hasattr(
             request.data, 'copy') else dict(request.data)
+        user = request.user
         
-        # If no user is specified or user is not staff, use logged-in user
-        if 'user' not in mutable_data or not request.user.is_staff:
-            mutable_data['user'] = request.user.id
-        # For staff users, verify they can manage the specified user
-        elif request.user.is_staff:
-            target_user_id = int(mutable_data['user'])
-            if not request.user.is_superuser:
-                target_user = User.objects.get(id=target_user_id)
-                if target_user.manager_id != request.user.id:
-                    raise PermissionDenied("You can only create entries for your managed users")
+        if user.is_superuser:
+            # Admin can create entries for anyone
+            pass
+        elif user.is_staff:
+            # Manager can create entries for themselves and their managed users
+            try:
+                target_user_id = int(mutable_data.get('user', str(user.id)))
+            except (ValueError, TypeError):
+                target_user_id = user.id
+            
+            mutable_data['user'] = str(target_user_id)
+            
+            # If creating for another user (not themselves)
+            if target_user_id != user.id:
+                try:
+                    target_user = User.objects.get(id=target_user_id)
+                    if target_user.manager_id != user.id:
+                        raise PermissionDenied("You can only create entries for your managed users")
+                except User.DoesNotExist:
+                    raise ValidationError("Invalid user ID")
+            # If creating for themselves, no additional checks needed
+        else:
+            # Regular users can only create their own entries
+            try:
+                target_user_id = int(mutable_data.get('user', str(user.id)))
+            except (ValueError, TypeError):
+                target_user_id = user.id
+                
+            if target_user_id != user.id:
+                raise PermissionDenied("You can only create your own time entries")
+            mutable_data['user'] = str(user.id)
 
         serializer = self.get_serializer(data=mutable_data)
         serializer.is_valid(raise_exception=True)
@@ -238,12 +264,43 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         user = request.user
 
-        # Check if user has permission to update this entry
-        if not user.is_superuser and user.is_staff:
-            if instance.user.manager_id != user.id:
-                raise PermissionDenied("You can only update entries for your managed users")
+        if user.is_superuser:
+            # Admin can update any entry
+            pass
+        elif user.is_staff:
+            # Manager can update entries for themselves and their managed users
+            # If updating another user's entry (not their own)
+            if instance.user.id != user.id:
+                if instance.user.manager_id != user.id:
+                    raise PermissionDenied("You can only update entries for your managed users")
+            # If updating their own entry, no additional checks needed
+        else:
+            # Regular users can only update their own entries
+            if instance.user.id != user.id:
+                raise PermissionDenied("You can only update your own time entries")
 
         return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+
+        if user.is_superuser:
+            # Admin can delete any entry
+            pass
+        elif user.is_staff:
+            # Manager can delete entries for themselves and their managed users
+            # If deleting another user's entry (not their own)
+            if instance.user.id != user.id:
+                if instance.user.manager_id != user.id:
+                    raise PermissionDenied("You can only delete entries for your managed users")
+            # If deleting their own entry, no additional checks needed
+        else:
+            # Regular users can only delete their own entries
+            if instance.user.id != user.id:
+                raise PermissionDenied("You can only delete your own time entries")
+
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/monthly/(?P<month>\d{4}-\d{2})')
     def monthly(self, request, user_id=None, month=None):

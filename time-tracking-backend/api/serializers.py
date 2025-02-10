@@ -179,11 +179,11 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Vous ne pouvez pas créer/modifier les entrées d'un autre utilisateur")
 
-        # For staff users, ensure they can only manage their users
+        # For staff users (managers), ensure they can manage their own entries and their users' entries
         if request_user.is_staff and not request_user.is_superuser:
-            if target_user.manager_id != request_user.id:
+            if target_user.id != request_user.id and target_user.manager_id != request_user.id:
                 raise serializers.ValidationError(
-                    "Vous ne pouvez gérer que les entrées de vos utilisateurs")
+                    "Vous ne pouvez gérer que vos propres entrées ou celles de vos utilisateurs")
 
         # For partial updates (PATCH), use instance values if not in data
         if self.instance:
