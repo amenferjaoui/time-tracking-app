@@ -1,6 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { User } from '../types';
-import { authApi } from '../services/api';
+import { Link, useLocation } from "react-router-dom";
+import { User } from "../types";
+import { authApi } from "../services/api";
+import { FiLogOut, FiUser } from "react-icons/fi"; // Icône pour l'utilisateur
 
 interface Props {
   user: User | null;
@@ -18,41 +19,47 @@ export default function Navigation({ user, onLogout }: Props) {
 
   return (
     <nav className="navigation">
-      <div className="nav-header">
-        <div className="nav-brand">
-          <Link to="/" className="brand-link">Time Tracking</Link>
-        </div>
-        {user && (
-          <div className="nav-user-actions">
-            <span className="username">{user.username}</span>
-            <span className="role">({user.role})</span>
-            <button onClick={handleLogout} className="logout-button">
-              Déconnexion
-            </button>
+      {user && (
+        <div className="nav-content">
+          <div className="nav-header">
+            <div className="nav-brand">
+              <Link to="/" className="brand-link">Time Tracking</Link>
+            </div>
+            <div className="nav-user-actions">
+              <div className="user-info">
+                <FiUser size={24} />
+                <div className="user-details">
+                  <span className="username">{user.username}</span>
+                  <span className="role">({user.role})</span>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
 
-     {user && (
-        <div className="nav-links-container">
-          <div className="nav-links">
-            <Link to="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
-              Feuille de temps
-            </Link>
-            <Link to="/report" className={`nav-link ${isActive('/report') ? 'active' : ''}`}>
-              Rapport mensuel
-            </Link>
-            {(user.role === 'manager' || user.role === 'admin') && (
-              <Link to="/projects" className={`nav-link ${isActive('/projects') ? 'active' : ''}`}>
-                Projets
+          <div className="nav-links-container">
+            <div className="nav-links">
+              <Link to="/" className={`nav-link ${isActive("/") ? "active" : ""}`}>
+                Feuille de temps
               </Link>
-            )}
-            {(user.role === 'admin' || user.role === 'manager') && (
-              <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>
-                Gestion des utilisateurs
+              <Link to="/report" className={`nav-link ${isActive("/report") ? "active" : ""}`}>
+                Rapport mensuel
               </Link>
-            )}
+              {(user.role === "manager" || user.role === "admin") && (
+                <Link to="/projects" className={`nav-link ${isActive("/projects") ? "active" : ""}`}>
+                  Projets
+                </Link>
+              )}
+              {(user.role === "admin" || user.role === "manager") && (
+                <Link to="/admin/users" className={`nav-link ${isActive("/admin/users") ? "active" : ""}`}>
+                  Gestion des utilisateurs
+                </Link>
+              )}
+            </div>
           </div>
+          <button onClick={handleLogout} className="logout-button">
+            <FiLogOut size={20} />
+            Déconnexion
+          </button>
         </div>
       )}
     </nav>
