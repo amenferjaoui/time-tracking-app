@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { User } from "../types";
 import { authApi } from "../services/api";
+import { FiLogOut, FiUser } from "react-icons/fi"; // Icône pour l'Utilisateur
 
 import logo from '../assets/logo.png';
 
@@ -28,7 +29,7 @@ export default function Navigation({ user, onLogout }: Props) {
             </div>
             <div className="nav-user-actions">
               <div className="user-info">
-              
+                <FiUser size={24} />
                 <div className="user-details">
                   <span className="username">{user.username}</span>
                   <span className="role">({user.role})</span>
@@ -58,7 +59,7 @@ export default function Navigation({ user, onLogout }: Props) {
             </div>
           </div>
           <button onClick={handleLogout} className="logout-button">
-            
+            <FiLogOut size={20} />
             Déconnexion
           </button>
         </div>
