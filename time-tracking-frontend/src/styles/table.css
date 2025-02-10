@@ -1,325 +1,277 @@
 .timesheet-container {
-  padding: 20px;
-  background-color: #f4f6f8;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 90%;
-}
-
-.timesheet-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  gap: 10px;
-}
-
-.week-button {
-  background-color: #3498db;
-  color: white;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
-}
-
-.week-button:hover {
-  background-color: #2980b9;
-}
-
-.week-label {
-  font-weight: bold;
-  font-size: 16px;
-  flex: 1;
-  text-align: center;
-  padding: 0 10px;
-  white-space: nowrap;
-  display: block;
-}
-
-
-.timesheet-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-}
-
-.timesheet-table th,
-.timesheet-table td {
-  padding: 12px;
-  text-align: center;
-  border: 1px solid #ddd;
-}
-
-.timesheet-table th {
-  background-color: #f0f0f0;
-  font-weight: bold;
-}
-
-.hours-input {
-  width: 100%;
-  padding: 6px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  text-align: center;
-}
-
-.hours-cell.saving {
-  background: rgba(241, 196, 15, 0.2);
-}
-
-.hours-cell.error {
-  background: rgba(231, 76, 60, 0.2);
-  border: 1px solid #e74c3c;
-}
-
-.saving-indicator {
-  width: 12px;
-  height: 12px;
-  border: 2px solid #3498db;
-  border-top: 2px solid transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 5px auto;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.loading-indicator {
-  text-align: center;
-  padding: 20px;
-  font-size: 18px;
-  color: #555;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 8px;
-}
-
-.edit-button,
-.delete-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
-}
-
-.edit-button {
-  background-color: #4CAF50;
-  color: white;
-}
-
-.edit-button:hover {
-  background-color: #45a049;
-}
-
-.delete-button {
-  background-color: #f44336;
-  color: white;
-}
-
-.delete-button:hover {
-  background-color: #da190b;
-}
-
-.no-entries {
-  text-align: center;
-  padding: 20px;
-  color: #666;
-}
-
-.user-assignment {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: #ffffff;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  max-width: 600px;
-  margin: auto;
-}
-
-.user-assignment-section {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.available-users,
-.assigned-users {
-  flex: 1;
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.available-users h4,
-.assigned-users h4 {
-  text-align: center;
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 10px;
-}
-
-.user-select {
-  width: 100%;
-  height: 150px;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  background: #fff;
-  overflow-y: auto;
-  font-size: 14px;
-  transition: all 0.3s ease-in-out;
-}
-
-.user-select:focus {
-  border-color: #4CAF50;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.3);
-}
-
-.assign-button,
-.remove-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.3s ease-in-out;
-}
-
-.assign-button {
-  background-color: #28a745;
-  color: white;
-}
-
-.assign-button:hover {
-  background-color: #218838;
-}
-
-.remove-button {
-  background-color: #dc3545;
-  color: white;
-}
-
-.remove-button:hover {
-  background-color: #c82333;
-}
-
-.assign-button:disabled,
-.remove-button:disabled {
-  background-color: #ddd;
-  color: #666;
-  cursor: not-allowed;
-}
-
-/* Timesheet specific styles */
-.timesheet-container {
-  margin: 20px;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  max-width: 1400px;
+  margin: 2rem auto;
+  width: 95%;
   position: relative;
 }
 
-.timesheet-controls {
-  margin-bottom: 20px;
+.timesheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.week-navigation {
+.user-selector {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 0.75rem;
+  background: #f8fafc;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.user-selector label {
+  font-weight: 500;
+  color: #475569;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.user-selector select {
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background-color: white;
+  color: #1e293b;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236B7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  min-width: 200px;
+}
+
+.user-selector select:hover {
+  border-color: #4f46e5;
+  background-color: #f8fafc;
+}
+
+.user-selector select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.timesheet-controls {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  gap: 1rem;
+  background: #f8fafc;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  flex: 1;
+  min-width: 300px;
+}
+
+.week-button {
+  background-color: #4f46e5;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+}
+
+.week-button:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(79, 70, 229, 0.25);
+}
+
+.week-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
 }
 
 .week-label {
   font-weight: 600;
-  min-width: 200px;
+  font-size: 1.125rem;
+  color: #1e293b;
+  flex: 1;
   text-align: center;
+  padding: 0 1rem;
+  white-space: nowrap;
+  display: block;
+  letter-spacing: -0.025em;
+  min-width: 200px;
 }
 
 .timesheet-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 20px;
+  border-spacing: 0;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.project-column {
-  min-width: 150px;
-}
-
-.day-column {
-  min-width: 100px;
+.timesheet-table th,
+.timesheet-table td {
+  padding: 1rem;
   text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.timesheet-table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.timesheet-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.timesheet-table td:first-child {
+  font-weight: 500;
+  color: #1e293b;
+  text-align: left;
+  border-left: 3px solid #4f46e5;
+  padding-left: 1.5rem;
+  min-width: 200px;
 }
 
 .hours-cell {
-  padding: 8px;
+  padding: 0.75rem;
   position: relative;
-  vertical-align: top;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.hours-cell:hover {
+  background-color: #f8fafc;
+}
+
+.hours-cell.saving {
+  background: rgba(79, 70, 229, 0.05);
 }
 
 .hours-cell.error {
-  background-color: #fff5f5;
+  background: rgba(239, 68, 68, 0.05);
 }
 
 .input-container {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-height: 60px;
+  gap: 0.5rem;
+  min-height: 70px;
 }
 
 .hours-input {
   width: 100%;
-  padding: 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   text-align: center;
+  font-size: 0.875rem;
+  color: #1e293b;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
 }
 
-.hours-input::placeholder {
-  color: #999;
-  opacity: 0.5;
+.hours-input:hover {
+  border-color: #cbd5e1;
 }
 
 .hours-input:focus {
   outline: none;
-  border-color: #4CAF50;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.hours-input::placeholder {
+  color: #94a3b8;
+  opacity: 0.7;
 }
 
 .hours-input:focus::placeholder {
-  opacity: 0.3;
+  opacity: 0.4;
+}
+
+.saving-indicator {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #4f46e5;
+  border-top: 2px solid transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0.5rem auto;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.loading-indicator {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.125rem;
+  color: #64748b;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  margin: 2rem auto;
+  max-width: 300px;
 }
 
 .error-message {
-  font-size: 12px;
-  color: #dc3545;
-  background-color: #fff5f5;
-  padding: 4px;
+  font-size: 0.75rem;
+  color: #ef4444;
+  background-color: #fef2f2;
+  padding: 0.5rem;
   border-radius: 4px;
   text-align: center;
-  margin-top: 4px;
-  border: 1px solid #ffb3b3;
+  margin-top: 0.5rem;
+  border: 1px solid #fee2e2;
+  box-shadow: 0 1px 2px rgba(239, 68, 68, 0.05);
+}
+
+/* Weekend columns styling */
+.timesheet-table th:nth-child(7),
+.timesheet-table th:nth-child(8),
+.timesheet-table td:nth-child(7),
+.timesheet-table td:nth-child(8) {
+  background-color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .timesheet-header {
+    flex-direction: column;
+  }
+  
+  .timesheet-controls {
+    width: 100%;
+  }
+  
+  .user-selector {
+    width: 100%;
+    justify-content: center;
+  }
 }
