@@ -1,7 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { User } from "../types";
 import { authApi } from "../services/api";
-import { FiLogOut, FiUser } from "react-icons/fi"; // Icône pour l'Utilisateur
+import { FiLogOut, FiUser } from "react-icons/fi";
+import logo from "../assets/logo.png";
 
 interface Props {
   user: User | null;
