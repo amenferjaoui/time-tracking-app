@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { User } from "../types";
 import { authApi } from "../services/api";
-
 import logo from '../assets/logo.png';
 
 interface Props {
@@ -24,7 +23,8 @@ export default function Navigation({ user, onLogout }: Props) {
         <div className="nav-content">
           <div className="nav-header">
             <div className="nav-brand">
-              <Link to="/" className="brand-link">Time Tracking</Link>
+              <img src={logo} alt="Logo" className="nav-logo" />
+              <Link to="/" className="brand-link">MyT&R</Link>
             </div>
             <div className="nav-user-actions">
               <div className="user-info">
