@@ -98,7 +98,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
       if (!acc[projectName]) {
         acc[projectName] = { totalHours: 0, entries: [] };
       }
-      acc[projectName].totalHours += entry.temps;
+      acc[projectName].totalHours += Number(entry.temps);
       acc[projectName].entries.push(entry);
       return acc;
     }, {});
@@ -178,9 +178,8 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
       {Object.entries(monthlyData).map(([project, data]) => (
         <div key={project} className="project-section">
           <h3>
-            {project} <span className="project-hours">({data.totalHours}h)</span>
-          </h3>
-          <table>
+            {project} <span className="project-hours">({data.totalHours} journée{data.totalHours > 1 ? 's' : ''})</span>
+          </h3>    <table>
             <thead>
               <tr>
                 <th>Date</th>
