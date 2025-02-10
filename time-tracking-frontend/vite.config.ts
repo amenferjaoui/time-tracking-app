@@ -5,10 +5,17 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: 'localhost', // Permet l'accès externe pour Docker ou un réseau local
-    port: 5173, // Définit explicitement le port
+    host: 'localhost',
+    port: 5173,
     watch: {
-      usePolling: true, // Nécessaire pour les volumes montés dans Docker
+      usePolling: true,
     },
   },
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:8000/api'),
+  },
+  build: {
+    target: 'esnext',
+    sourcemap: true
+  }
 })

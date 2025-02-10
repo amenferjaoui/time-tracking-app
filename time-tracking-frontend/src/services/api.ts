@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { TimeEntry, Project, User, AuthResponse, RefreshResponse } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = process.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance
 const axiosInstance = axios.create({
@@ -15,12 +15,12 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token');
   if (token) {
-    if (!config.headers) {
-      config.headers = {};
-    }
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
 // Handle token refresh
