@@ -38,8 +38,8 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
             : usersRes.data.filter((u: User) => u.manager === currentUserRes.data.id || u.id === currentUserRes.data.id);
           setUsers(filteredUsers);
         }
-      } catch (error) {
-        console.error("Error fetching users:", error);
+      } catch (err) {
+        console.error("Error fetching users:", err);
       }
     };
     fetchUsers();
@@ -178,7 +178,7 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     return number.toFixed(2).replace(".", ",");
   };
 
-    const calculateDayTotal = (dateStr: string, excludeProjectId?: number, excludeHours?: number) => {
+    const calculateDayTotal = (dateStr: string, excludeProjectId?: number) => {
       return Object.entries(timeEntries).reduce((total, [key, entry]) => {
         const [projectId, entryDate] = key.split('-');
         if (entryDate === dateStr && Number(projectId) !== excludeProjectId) {
@@ -303,10 +303,10 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
             [key]: { temps: hours, entryId: response.data.id, saving: false }
           }));
         }
-      } catch (error: any) {
-        const errorMessage = error.response?.data?.non_field_errors?.[0] || 
-                           error.response?.data?.detail ||
-                           "Échec de l'enregistrement";
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : "Échec de l'enregistrement";
         setTimeEntries(prev => ({
           ...prev,
           [key]: { 

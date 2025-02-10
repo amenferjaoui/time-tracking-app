@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { User, Project, TimeEntry } from "./types";
+import { User, Project } from "./types";
 import { authApi, projectsApi } from "./services/api";
 import Navigation from "./components/Navigation";
 import Login from "./components/Login";
@@ -41,7 +41,7 @@ function ProtectedRoute({ children, user, requiredRole, adminOnly }: ProtectedRo
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,8 +72,9 @@ export default function App() {
     try {
       const response = await projectsApi.getAll();
       setProjects(response.data);
-    } catch (err) {
-      setError("Failed to load projects. Please refresh the page.");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load projects. Please refresh the page.";
+      setError(errorMessage);
     }
   };
 
