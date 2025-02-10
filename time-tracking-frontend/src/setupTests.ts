@@ -1,9 +1,8 @@
 import '@testing-library/jest-dom';
 
-// Polyfill implementation that matches the Web API TextEncoder interface
 class TextEncoderPolyfill implements TextEncoder {
   readonly encoding = 'utf-8';
-  
+
   encode(input: string = ''): Uint8Array {
     const arr = new Uint8Array(input.length);
     for (let i = 0; i < input.length; i++) {
@@ -19,7 +18,6 @@ class TextEncoderPolyfill implements TextEncoder {
   }
 }
 
-// Polyfill implementation that matches the Web API TextDecoder interface
 class TextDecoderPolyfill implements TextDecoder {
   readonly encoding: string;
   readonly fatal: boolean;
@@ -33,40 +31,24 @@ class TextDecoderPolyfill implements TextDecoder {
 
   decode(input?: BufferSource | ArrayBuffer | null, options?: TextDecodeOptions): string {
     if (!input) return '';
-    
-    // Handle different input types
+
     let bytes: Uint8Array;
-    if (typeof ArrayBuffer !== 'undefined' && input instanceof ArrayBuffer) {
+    if (input instanceof ArrayBuffer) {
       bytes = new Uint8Array(input);
-    } else if (typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(input)) {
-      bytes = new Uint8Array((input as ArrayBufferView).buffer, 
-        (input as ArrayBufferView).byteOffset, 
-        (input as ArrayBufferView).byteLength);
-    } else if (input instanceof Uint8Array) {
-      bytes = input;
+    } else if (ArrayBuffer.isView(input)) {
+      bytes = new Uint8Array(input.buffer, input.byteOffset, input.byteLength);
     } else {
       return '';
     }
 
-    // Use options if provided (currently just a placeholder)
     if (options?.stream) {
-      // Handle streaming if needed in the future
       console.warn('Streaming not implemented in this polyfill');
     }
 
-    return String.fromCharCode.apply(null, Array.from(bytes));
+    return String.fromCharCode(...bytes);
   }
 }
 
-// Ensure global types are correctly declared
-declare global {
-  var TextEncoder: { new (): TextEncoder; prototype: TextEncoder; };
-  var TextDecoder: { 
-    new (label?: string, options?: TextDecoderOptions): TextDecoder; 
-    prototype: TextDecoder; 
-  };
-}
-
 // Assign polyfills to global scope
-globalThis.TextEncoder = TextEncoderPolyfill as any;
-globalThis.TextDecoder = TextDecoderPolyfill as any;
+(globalThis as typeof globalThis & { TextEncoder: typeof TextEncoderPolyfill }).TextEncoder = TextEncoderPolyfill;
+(globalThis as typeof globalThis & { TextDecoder: typeof TextDecoderPolyfill }).TextDecoder = TextDecoderPolyfill;
