@@ -17,7 +17,6 @@ User = get_user_model()
 class IsAdminOrManagerForUserCreation(permissions.BasePermission):
     def has_permission(self, request, view):
         if view.action == 'create':
-            # Pour la création d'utilisateur, vérifier si c'est un admin ou un manager
             return (
                 (request.user and request.user.is_authenticated and
                  (request.user.is_superuser or request.user.is_staff)) or
@@ -43,7 +42,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if self.action == 'create':
-            # Allow both admin and manager to create users
             return [IsAdminOrManagerForUserCreation()]
         elif self.action == 'destroy':
             return [permissions.IsAuthenticated(), IsAdminOrManagerForUserCreation()]
@@ -95,29 +93,23 @@ class ProjetViewSet(viewsets.ModelViewSet):
         user = self.request.user
         base_queryset = Projet.objects.prefetch_related('users')
 
-        # Check if a specific user is requested in the query params
         requested_user_id = self.request.query_params.get('user')
 
         if requested_user_id:
             requested_user = User.objects.get(id=requested_user_id)
-            # If requested user is a manager, return projects they manage OR are assigned to
             if requested_user.is_staff:
                 return base_queryset.filter(
                     models.Q(manager=requested_user) | models.Q(
                         users=requested_user)
                 ).distinct()
-            # For regular users, return only projects they're assigned to
             return base_queryset.filter(users=requested_user).distinct()
 
-        # No specific user requested, use default permission logic
         if user.is_superuser:
             return base_queryset.all()
         elif user.is_staff:
-            # Manager can see projects they manage OR are assigned to
             return base_queryset.filter(
                 models.Q(manager=user) | models.Q(users=user)
             ).distinct()
-        # Regular users can see projects they're assigned to
         return base_queryset.filter(users=user).distinct()
 
     def perform_create(self, serializer):
@@ -219,10 +211,8 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user.is_superuser:
-            # Admin can create entries for anyone
             pass
         elif user.is_staff:
-            # Manager can create entries for themselves and their managed users
             try:
                 target_user_id = int(mutable_data.get('user', str(user.id)))
             except (ValueError, TypeError):
@@ -230,7 +220,6 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
             mutable_data['user'] = str(target_user_id)
 
-            # If creating for another user (not themselves)
             if target_user_id != user.id:
                 try:
                     target_user = User.objects.get(id=target_user_id)
@@ -239,9 +228,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                             "You can only create entries for your managed users")
                 except User.DoesNotExist:
                     raise ValidationError("Invalid user ID")
-            # If creating for themselves, no additional checks needed
         else:
-            # Regular users can only create their own entries
             try:
                 target_user_id = int(mutable_data.get('user', str(user.id)))
             except (ValueError, TypeError):
@@ -266,18 +253,13 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user.is_superuser:
-            # Admin can update any entry
             pass
         elif user.is_staff:
-            # Manager can update entries for themselves and their managed users
-            # If updating another user's entry (not their own)
             if instance.user.id != user.id:
                 if instance.user.manager_id != user.id:
                     raise PermissionDenied(
                         "You can only update entries for your managed users")
-            # If updating their own entry, no additional checks needed
         else:
-            # Regular users can only update their own entries
             if instance.user.id != user.id:
                 raise PermissionDenied(
                     "You can only update your own time entries")
@@ -289,18 +271,13 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         user = request.user
 
         if user.is_superuser:
-            # Admin can delete any entry
             pass
         elif user.is_staff:
-            # Manager can delete entries for themselves and their managed users
-            # If deleting another user's entry (not their own)
             if instance.user.id != user.id:
                 if instance.user.manager_id != user.id:
                     raise PermissionDenied(
                         "You can only delete entries for your managed users")
-            # If deleting their own entry, no additional checks needed
         else:
-            # Regular users can only delete their own entries
             if instance.user.id != user.id:
                 raise PermissionDenied(
                     "You can only delete your own time entries")
@@ -319,31 +296,25 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
             logger = logging.getLogger(__name__)
 
-            # Get entries for the specified month and any overflow days from adjacent months
             from datetime import date, timedelta
 
-            # Get first day of the month
             first_day = date(year, month, 1)
 
-            # Get last day of the month
             if month == 12:
                 next_month = date(year + 1, 1, 1)
             else:
                 next_month = date(year, month + 1, 1)
             last_day = next_month - timedelta(days=1)
 
-            # Get Monday of the first week
             start_date = first_day - timedelta(days=first_day.weekday())
 
-            # Get Sunday of the last week
             end_date = last_day + timedelta(days=(6 - last_day.weekday()))
 
-            # Get all time entries for the specified month
             entries = SaisieTemps.objects.filter(
                 user_id=user_id,
                 date__year=year,
                 date__month=month
-            ).select_related('projet')  # Include project data to avoid N+1 queries
+            ).select_related('projet')
 
             serializer = self.get_serializer(entries, many=True)
             return Response(serializer.data)
@@ -486,7 +457,6 @@ class CompteRenduViewSet(viewsets.ModelViewSet):
         return CompteRendu.objects.filter(user=user)
 
     def perform_create(self, serializer):
-        # Calculer le total_temps automatiquement
         user = serializer.validated_data['user']
         mois = serializer.validated_data['mois']
         total_temps = SaisieTemps.objects.filter(
@@ -498,7 +468,6 @@ class CompteRenduViewSet(viewsets.ModelViewSet):
         serializer.save(total_temps=total_temps)
 
     def perform_update(self, serializer):
-        # Recalculer le total_temps lors de la mise à jour
         instance = serializer.instance
         total_temps = SaisieTemps.objects.filter(
             user=instance.user,

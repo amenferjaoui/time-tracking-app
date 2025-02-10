@@ -97,7 +97,7 @@ class SaisieTempsModelTests(TestCase):
             description="Test Description",
             manager=self.manager
         )
-        self.projet.users.add(self.user)  # Add user to project
+        self.projet.users.add(self.user)  
 
     def test_saisie_temps_creation(self):
         """Test time entry creation"""
@@ -135,7 +135,7 @@ class SaisieTempsModelTests(TestCase):
             'user': self.user.id,
             'projet': self.projet.id,
             'date': date.today().isoformat(),
-            'temps': '2.00'  # Invalid: must be 0, 0.5, or 1
+            'temps': '2.00'  
         }
         response = client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -196,7 +196,7 @@ class APITests(APITestCase):
             description="Test Description",
             manager=self.manager
         )
-        self.projet.users.add(self.user)  # Add user to project
+        self.projet.users.add(self.user)  
 
     def test_user_login(self):
         """Test user authentication"""
@@ -272,11 +272,9 @@ class APITests(APITestCase):
         """Test project user assignment functionality"""
         self.client.force_authenticate(user=self.manager)
         
-        # First set the manager relationship
         self.user.manager = self.manager
         self.user.save()
         
-        # Create test user with manager relationship
         user2 = User.objects.create_user(
             username='user2',
             email='user2@test.com',
@@ -293,7 +291,6 @@ class APITests(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        # Verify users were assigned
         self.projet.refresh_from_db()
         self.assertEqual(self.projet.users.count(), 2)
         self.assertIn(self.user, self.projet.users.all())
@@ -303,7 +300,6 @@ class APITests(APITestCase):
         """Test monthly report generation endpoint"""
         self.client.force_authenticate(user=self.manager)
         
-        # Create time entries
         SaisieTemps.objects.create(
             user=self.user,
             projet=self.projet,

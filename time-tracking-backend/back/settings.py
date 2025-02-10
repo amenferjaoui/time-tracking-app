@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'api',  # Your app
+    'api', 
 ]
 
 MIDDLEWARE = [
@@ -117,6 +117,6 @@ SIMPLE_JWT = {
 
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # React dev server
+    "http://localhost:5173",  
 ]
 CORS_ALLOW_CREDENTIALS = True

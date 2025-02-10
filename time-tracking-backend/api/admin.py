@@ -40,7 +40,6 @@ class CompteRenduAdmin(admin.ModelAdmin):
     date_hierarchy = 'mois'
     readonly_fields = ('total_temps',)
 
-# Register models with their respective admin classes
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Projet, ProjetAdmin)
 admin.site.register(SaisieTemps, SaisieTempsAdmin)
