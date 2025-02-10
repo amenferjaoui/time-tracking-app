@@ -25,7 +25,8 @@ export default function Navigation({ user, onLogout }: Props) {
         <div className="nav-content">
           <div className="nav-header">
             <div className="nav-brand">
-              <Link to="/" className="brand-link">Time Tracking</Link>
+              <img src={logo} alt="Logo" className="nav-logo" />
+              <Link to="/" className="brand-link">MyT&R</Link>
             </div>
             <div className="nav-user-actions">
               <div className="user-info">
