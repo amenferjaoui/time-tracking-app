@@ -328,7 +328,6 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
 
   return (
     <div className="timesheet-container">
-      <h2>Saisie des temps</h2>
       {currentUser?.is_staff && users.length > 0 && (
         <div className="user-selector">
           <label>Utilisateur : </label>
