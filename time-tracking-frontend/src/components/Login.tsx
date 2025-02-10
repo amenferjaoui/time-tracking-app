@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { authApi } from '../services/api';
 import { ApiError } from '../types';
+import logo from '../assets/logo.png';
 import '../styles/form.css';
+import '../styles/login.css';
 
 interface LoginForm {
   username: string;
@@ -63,8 +65,12 @@ export default function Login({ onLoginSuccess }: Props) {
   };
 
   return (
-    <div className="form-container">
-      <h2>Connexion</h2>
+    <div className="login-container">
+      <div className="login-card">
+        <div className="login-header">
+          <img src={logo} alt="Logo" className="login-logo" />
+          <h2>Connexion</h2>
+        </div>
       <form onSubmit={handleSubmit(onSubmit)}>
         <div className="form-group">
           <label>Nom d'utilisateur :</label>
@@ -98,8 +104,11 @@ export default function Login({ onLoginSuccess }: Props) {
 
         {error && <div className="error-message">{error}</div>}
 
-        <button type="submit">Se connecter</button>
+        <button type="submit" className="login-button">
+          Se connecter
+        </button>
       </form>
+      </div>
     </div>
   );
 }
