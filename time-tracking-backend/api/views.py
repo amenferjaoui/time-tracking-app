@@ -94,7 +94,21 @@ class ProjetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base_queryset = Projet.objects.prefetch_related('users')
-
+        
+        # Check if a specific user is requested in the query params
+        requested_user_id = self.request.query_params.get('user')
+        
+        if requested_user_id:
+            requested_user = User.objects.get(id=requested_user_id)
+            # If requested user is a manager, return projects they manage OR are assigned to
+            if requested_user.is_staff:
+                return base_queryset.filter(
+                    models.Q(manager=requested_user) | models.Q(users=requested_user)
+                ).distinct()
+            # For regular users, return only projects they're assigned to
+            return base_queryset.filter(users=requested_user).distinct()
+        
+        # No specific user requested, use default permission logic
         if user.is_superuser:
             return base_queryset.all()
         elif user.is_staff:
@@ -181,6 +195,8 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     serializer_class = SaisieTempsSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        return [permissions.IsAuthenticated()]
 
     def get_queryset(self):
         user = self.request.user
@@ -201,7 +217,40 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         mutable_data = request.data.copy() if hasattr(
             request.data, 'copy') else dict(request.data)
-        mutable_data['user'] = request.user.id
+        user = request.user
+        
+        if user.is_superuser:
+            # Admin can create entries for anyone
+            pass
+        elif user.is_staff:
+            # Manager can create entries for themselves and their managed users
+            try:
+                target_user_id = int(mutable_data.get('user', str(user.id)))
+            except (ValueError, TypeError):
+                target_user_id = user.id
+            
+            mutable_data['user'] = str(target_user_id)
+            
+            # If creating for another user (not themselves)
+            if target_user_id != user.id:
+                try:
+                    target_user = User.objects.get(id=target_user_id)
+                    if target_user.manager_id != user.id:
+                        raise PermissionDenied("You can only create entries for your managed users")
+                except User.DoesNotExist:
+                    raise ValidationError("Invalid user ID")
+            # If creating for themselves, no additional checks needed
+        else:
+            # Regular users can only create their own entries
+            try:
+                target_user_id = int(mutable_data.get('user', str(user.id)))
+            except (ValueError, TypeError):
+                target_user_id = user.id
+                
+            if target_user_id != user.id:
+                raise PermissionDenied("You can only create your own time entries")
+            mutable_data['user'] = str(user.id)
+
         serializer = self.get_serializer(data=mutable_data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -209,7 +258,49 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+
+        if user.is_superuser:
+            # Admin can update any entry
+            pass
+        elif user.is_staff:
+            # Manager can update entries for themselves and their managed users
+            # If updating another user's entry (not their own)
+            if instance.user.id != user.id:
+                if instance.user.manager_id != user.id:
+                    raise PermissionDenied("You can only update entries for your managed users")
+            # If updating their own entry, no additional checks needed
+        else:
+            # Regular users can only update their own entries
+            if instance.user.id != user.id:
+                raise PermissionDenied("You can only update your own time entries")
+
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user = request.user
+
+        if user.is_superuser:
+            # Admin can delete any entry
+            pass
+        elif user.is_staff:
+            # Manager can delete entries for themselves and their managed users
+            # If deleting another user's entry (not their own)
+            if instance.user.id != user.id:
+                if instance.user.manager_id != user.id:
+                    raise PermissionDenied("You can only delete entries for your managed users")
+            # If deleting their own entry, no additional checks needed
+        else:
+            # Regular users can only delete their own entries
+            if instance.user.id != user.id:
+                raise PermissionDenied("You can only delete your own time entries")
+
+        return super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/monthly/(?P<month>\d{4}-\d{2})')
     def monthly(self, request, user_id=None, month=None):
@@ -242,53 +333,12 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             # Get Sunday of the last week
             end_date = last_day + timedelta(days=(6 - last_day.weekday()))
 
-            # Get all entries spanning these dates
-            queryset = SaisieTemps.objects.filter(
+            # Get all time entries for the specified month
+            entries = SaisieTemps.objects.filter(
                 user_id=user_id,
-                date__gte=start_date,
-                date__lte=end_date
+                date__year=year,
+                date__month=month
             ).select_related('projet')  # Include project data to avoid N+1 queries
-
-            # Get all projects for this user
-            projects = Projet.objects.filter(
-                models.Q(saisietemps__user_id=user_id) |
-                models.Q(manager=request.user)
-            ).distinct()
-
-            # Create a map of existing entries
-            entry_map = {}
-            for entry in queryset:
-                # Format date as YYYY-MM-DD to match frontend
-                date_str = entry.date.strftime('%Y-%m-%d')
-                key = f"{entry.projet.id}-{date_str}"
-                entry_map[key] = entry
-                logger.info(f"Found existing entry: {key}")
-
-            # Generate entries for all dates in the range
-            entries = []
-            current_date = start_date
-            while current_date <= end_date:
-                date_str = current_date.strftime('%Y-%m-%d')
-
-                for project in projects:
-                    key = f"{project.id}-{date_str}"
-                    logger.info(f"Processing key: {key}")
-
-                    if key in entry_map:
-                        logger.info(f"Using existing entry for {key}")
-                        entries.append(entry_map[key])
-                    else:
-                        logger.info(f"Creating dummy entry for {key}")
-                        # Create a dummy entry with 0 hours
-                        entries.append(SaisieTemps(
-                            user_id=user_id,
-                            projet=project,
-                            date=current_date,
-                            temps=0,
-                            description=''
-                        ))
-
-                current_date += timedelta(days=1)
 
             serializer = self.get_serializer(entries, many=True)
             return Response(serializer.data)

@@ -163,14 +163,28 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaisieTemps
         fields = ('id', 'user', 'projet', 'date', 'temps', 'description')
-        read_only_fields = ('id', 'user')
+        read_only_fields = ('id',)
         extra_kwargs = {
             'description': {'required': False}
         }
 
     def validate(self, data):
-        user = self.context['request'].user
+        request_user = self.context['request'].user
         
+        # Get the target user (from data for creation, from instance for updates)
+        target_user = data.get('user') if not self.instance else data.get('user', self.instance.user)
+        
+        # For non-staff users, ensure they can only create/update their own entries
+        if not request_user.is_staff and target_user.id != request_user.id:
+            raise serializers.ValidationError(
+                "Vous ne pouvez pas créer/modifier les entrées d'un autre utilisateur")
+
+        # For staff users (managers), ensure they can manage their own entries and their users' entries
+        if request_user.is_staff and not request_user.is_superuser:
+            if target_user.id != request_user.id and target_user.manager_id != request_user.id:
+                raise serializers.ValidationError(
+                    "Vous ne pouvez gérer que vos propres entrées ou celles de vos utilisateurs")
+
         # For partial updates (PATCH), use instance values if not in data
         if self.instance:
             date = data.get('date', self.instance.date)
@@ -182,7 +196,7 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
             projet = data['projet']
 
         # Vérifier que l'utilisateur a accès au projet
-        if not user.is_staff and not projet.users.filter(id=user.id).exists():
+        if not request_user.is_staff and not projet.users.filter(id=target_user.id).exists():
             raise serializers.ValidationError(
                 "Vous n'avez pas accès à ce projet. Contactez votre manager pour obtenir l'accès.")
 
@@ -191,7 +205,7 @@ class SaisieTempsSerializer(serializers.ModelSerializer):
             return data
 
         # Calculer le temps total pour cette date en excluant l'entrée actuelle
-        queryset = SaisieTemps.objects.filter(user=user, date=date)
+        queryset = SaisieTemps.objects.filter(user=target_user, date=date)
         if self.instance:
             queryset = queryset.exclude(id=self.instance.id)
         

@@ -49,7 +49,8 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await projectsApi.getAll();
+        const userId = parseInt(selectedUserId);
+        const response = await projectsApi.getProjectsForUsers(userId);
         setProjects(response.data);
       } catch (error) {
         console.error(error);
@@ -58,7 +59,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     };
 
     fetchProjects();
-  }, []);
+  }, [selectedUserId]);
 
   // Récupérer les entrées de temps pour le mois sélectionné (en filtrant les zéros)
   const fetchMonthlyData = useCallback(async () => {
@@ -97,13 +98,13 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
       if (!acc[projectName]) {
         acc[projectName] = { totalHours: 0, entries: [] };
       }
-      acc[projectName].totalHours += entry.temps;
+      acc[projectName].totalHours += Number(entry.temps);
       acc[projectName].entries.push(entry);
       return acc;
     }, {});
   };
 
-  const totalHours = entries.reduce((sum, entry) => sum + entry.temps, 0);
+  const totalHours = entries.reduce((sum, entry) => sum + Number(entry.temps), 0);
   const monthlyData = aggregateData();
 
   // Exportation du rapport PDF
@@ -177,9 +178,8 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
       {Object.entries(monthlyData).map(([project, data]) => (
         <div key={project} className="project-section">
           <h3>
-            {project} <span className="project-hours">({data.totalHours}h)</span>
-          </h3>
-          <table>
+            {project} <span className="project-hours">({data.totalHours} journée{data.totalHours > 1 ? 's' : ''})</span>
+          </h3>    <table>
             <thead>
               <tr>
                 <th>Date</th>

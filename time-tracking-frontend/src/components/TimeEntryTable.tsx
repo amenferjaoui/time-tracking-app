@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { TimeEntry, Project } from "../types";
-import { projectsApi, timeEntriesApi } from "../services/api";
+import { TimeEntry, Project, User } from "../types";
+import { projectsApi, timeEntriesApi, authApi } from "../services/api";
 import "./../styles/table.css";
 
 interface Props {
-  userId: number;
+  userId?: number;  // Optional since we'll get it from user selection for managers
 }
 
 interface TimeEntryMap {
@@ -16,10 +16,44 @@ interface TimeEntryMap {
   };
 }
 
-export default function TimeEntryTable({ userId }: Props) {
+export default function TimeEntryTable({ userId: propUserId }: Props) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [timeEntries, setTimeEntries] = useState<TimeEntryMap>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<number | undefined>(propUserId);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+
+  // Fetch current user and their managed users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const currentUserRes = await authApi.getCurrentUser();
+        setCurrentUser(currentUserRes.data);
+        
+        if (currentUserRes.data.is_staff || currentUserRes.data.is_superuser) {
+          const usersRes = await authApi.getAllUsers();
+          const filteredUsers = currentUserRes.data.is_superuser 
+            ? usersRes.data 
+            : usersRes.data.filter((u: User) => u.manager === currentUserRes.data.id || u.id === currentUserRes.data.id);
+          setUsers(filteredUsers);
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Set initial selected user
+  useEffect(() => {
+    if (propUserId) {
+      setSelectedUserId(propUserId);
+    } else if (currentUser) {
+      setSelectedUserId(currentUser.id);
+    }
+  }, [propUserId, currentUser]);
+
   const [selectedDate, setSelectedDate] = useState(() => {
     const today = new Date();
     if (isNaN(today.getTime())) {
@@ -63,37 +97,23 @@ export default function TimeEntryTable({ userId }: Props) {
   }, [selectedDate]);
 
   const fetchTimeEntries = async () => {
-    if (!currentWeek || currentWeek.length < 7) {
-      console.error("Invalid week data");
-      return;
-    }
-
-    const firstDay = currentWeek[0];
-    const lastDay = currentWeek[6];
-
-    if (!firstDay || !lastDay || isNaN(firstDay.getTime()) || isNaN(lastDay.getTime())) {
-      console.error("Invalid dates in week data");
+    if (!selectedUserId) {
+      console.error("No user selected");
       return;
     }
 
     try {
-      const firstDayMonth = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, "0")}`;
-      const lastDayMonth = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}`;
-      
-      const promises = [timeEntriesApi.getMonthlyReport(userId, firstDayMonth)];
-      if (firstDayMonth !== lastDayMonth) {
-        promises.push(timeEntriesApi.getMonthlyReport(userId, lastDayMonth));
-      }
-      
-      const responses = await Promise.all(promises);
+      // Get all time entries
+      const allEntriesRes = await timeEntriesApi.getAll();
       const entriesMap: TimeEntryMap = {};
       
-      responses.forEach(response => {
-        response.data.forEach((entry: TimeEntry) => {
+      // Filter entries for the selected user
+      allEntriesRes.data
+        .filter((entry: TimeEntry) => entry.user === selectedUserId)
+        .forEach((entry: TimeEntry) => {
           const key = `${entry.projet}-${entry.date}`;
           entriesMap[key] = { temps: entry.temps, entryId: entry.id };
         });
-      });
       
       setTimeEntries(entriesMap);
     } catch (error) {
@@ -101,28 +121,33 @@ export default function TimeEntryTable({ userId }: Props) {
     }
   };
 
-  // Fetch projects only once when component mounts
+  // Fetch projects when component mounts or selected user changes
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const projectsRes = await projectsApi.getAll();
+        console.log(selectedUserId);
+        const projectsRes = selectedUserId && selectedUserId !== currentUser?.id
+          ? await projectsApi.getProjectsForUsers(selectedUserId)
+          : await projectsApi.getAll();
         setProjects(projectsRes.data);
+        console.log("Projects fetched:", projectsRes.data);
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
     };
     fetchProjects();
-  }, []);
+  }, [selectedUserId]);
 
-  // Fetch time entries whenever currentWeek changes
+  // Fetch time entries whenever currentWeek or selectedUser changes
   useEffect(() => {
     const fetchData = async () => {
-      if (!currentWeek || currentWeek.length < 7) {
+      if (!currentWeek || currentWeek.length < 7 || !selectedUserId) {
         return;
       }
 
       setIsLoading(true);
       try {
+        // Fetch time entries for the selected user
         await fetchTimeEntries();
       } catch (error) {
         console.error("Error fetching time entries:", error);
@@ -131,7 +156,7 @@ export default function TimeEntryTable({ userId }: Props) {
       }
     };
     fetchData();
-  }, [currentWeek, userId]);
+  }, [currentWeek, selectedUserId]);
 
   const handleWeekChange = (direction: "prev" | "next") => {
     setSelectedDate((prev) => {
@@ -256,7 +281,13 @@ export default function TimeEntryTable({ userId }: Props) {
               error: undefined 
             }
           }));
-          const response = await timeEntriesApi.create({ date: dateStr, projet: projectId, temps: hours, description: "" });
+          const response = await timeEntriesApi.create({ 
+            date: dateStr, 
+            projet: projectId, 
+            temps: hours, 
+            description: "",
+            user: selectedUserId 
+          });
           setTimeEntries(prev => ({
             ...prev,
             [key]: { temps: hours, entryId: response.data.id, saving: false }
@@ -288,6 +319,21 @@ export default function TimeEntryTable({ userId }: Props) {
   return (
     <div className="timesheet-container">
       <h2>Saisie des temps</h2>
+      {currentUser?.is_staff && users.length > 0 && (
+        <div className="user-selector">
+          <label>Utilisateur : </label>
+          <select 
+            value={selectedUserId} 
+            onChange={(e) => setSelectedUserId(Number(e.target.value))}
+          >
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.username}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="timesheet-controls">
         <button className="week-button" onClick={() => handleWeekChange("prev")}>
           ← Semaine précédente
