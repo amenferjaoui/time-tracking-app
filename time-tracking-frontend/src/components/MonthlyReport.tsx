@@ -49,7 +49,8 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const response = await projectsApi.getAll();
+        const userId = parseInt(selectedUserId);
+        const response = await projectsApi.getProjectsForUsers(userId);
         setProjects(response.data);
       } catch (error) {
         console.error(error);
@@ -58,7 +59,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     };
 
     fetchProjects();
-  }, []);
+  }, [selectedUserId]);
 
   // Récupérer les entrées de temps pour le mois sélectionné (en filtrant les zéros)
   const fetchMonthlyData = useCallback(async () => {

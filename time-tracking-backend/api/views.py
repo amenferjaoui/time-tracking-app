@@ -333,50 +333,12 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             # Get Sunday of the last week
             end_date = last_day + timedelta(days=(6 - last_day.weekday()))
 
-            # Get all entries spanning these dates
-            queryset = SaisieTemps.objects.filter(
+            # Get all time entries for the specified month
+            entries = SaisieTemps.objects.filter(
                 user_id=user_id,
-                date__gte=start_date,
-                date__lte=end_date
+                date__year=year,
+                date__month=month
             ).select_related('projet')  # Include project data to avoid N+1 queries
-
-            # Get all projects assigned to this user
-            projects = Projet.objects.filter(users__id=user_id).distinct()
-
-            # Create a map of existing entries
-            entry_map = {}
-            for entry in queryset:
-                # Format date as YYYY-MM-DD to match frontend
-                date_str = entry.date.strftime('%Y-%m-%d')
-                key = f"{entry.projet.id}-{date_str}"
-                entry_map[key] = entry
-                logger.info(f"Found existing entry: {key}")
-
-            # Generate entries for all dates in the range
-            entries = []
-            current_date = start_date
-            while current_date <= end_date:
-                date_str = current_date.strftime('%Y-%m-%d')
-
-                for project in projects:
-                    key = f"{project.id}-{date_str}"
-                    logger.info(f"Processing key: {key}")
-
-                    if key in entry_map:
-                        logger.info(f"Using existing entry for {key}")
-                        entries.append(entry_map[key])
-                    else:
-                        logger.info(f"Creating dummy entry for {key}")
-                        # Create a dummy entry with 0 hours
-                        entries.append(SaisieTemps(
-                            user_id=user_id,
-                            projet=project,
-                            date=current_date,
-                            temps=0,
-                            description=''
-                        ))
-
-                current_date += timedelta(days=1)
 
             serializer = self.get_serializer(entries, many=True)
             return Response(serializer.data)
