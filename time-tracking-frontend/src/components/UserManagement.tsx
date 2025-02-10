@@ -20,6 +20,7 @@ interface Props {
 }
 
 export default function UserManagement({ currentUser }: Props) {
+  const [showModal, setShowModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [potentialManagers, setPotentialManagers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,9 +80,11 @@ export default function UserManagement({ currentUser }: Props) {
         await authApi.updateUser(editingUser.id, userData);
         await fetchUsers(); // Refresh both users and potential managers
         setEditingUser(null);
+        setShowModal(false);
       } else {
         await authApi.createUser(userData);
         await fetchUsers(); // Refresh both users and potential managers
+        setShowModal(false);
       }
       setFormData({
         username: '',
@@ -116,11 +119,14 @@ export default function UserManagement({ currentUser }: Props) {
     setFormData({
       username: user.username,
       password: '', // Ne pas afficher le mot de passe existant
+      email: user.email || '',
       role: user.role,
       manager: user.manager,
       is_superuser: user.is_superuser,
       is_staff: user.is_staff
     });
+    setError(null);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -152,15 +158,6 @@ export default function UserManagement({ currentUser }: Props) {
     }
   };
 
-  const handleCancel = () => {
-    setEditingUser(null);
-    setFormData({
-      username: '',
-      password: '',
-      role: 'user'
-    });
-  };
-
   const handleRoleChange = (role: 'admin' | 'manager' | 'user') => {
     setFormData({
       ...formData,
@@ -170,106 +167,135 @@ export default function UserManagement({ currentUser }: Props) {
     });
   };
 
-  if (loading) return <div className="loading">Loading users...</div>;
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingUser(null);
+    setError(null);
+    setFormData({
+      username: '',
+      password: '',
+      role: 'user'
+    });
+  };
+
+  const handleOpenModal = () => {
+    setError(null);
+    setShowModal(true);
+  };
+
+  if (loading) {
+    return <div className="loading">Loading users...</div>;
+  }
 
   return (
-    <div className="user-management">
-      <div className="content-section">
-        <h2>{editingUser ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}</h2>
-        <form onSubmit={handleSubmit} className="form-container">
-          <div className="form-group">
-            <label>Nom d'utilisateur :</label>
-            <input
-              type="text"
-              value={formData.username}
-              onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              required
-              placeholder="Nom d'utilisateur"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Email :</label>
-            <input
-              type="email"
-              value={formData.email || ''}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              placeholder="Email"
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Mot de passe :</label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              required={!editingUser}
-              placeholder={editingUser ? 'Laisser vide pour ne pas modifier' : 'Mot de passe'}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Rôle :</label>
-            <select
-              value={formData.role}
-              onChange={(e) => handleRoleChange(e.target.value as 'admin' | 'manager' | 'user')}
-              required
-            >
-              <option value="user">Utilisateur</option>
-              {currentUser.is_superuser && (
-                <>
-                  <option value="manager">Manager</option>
-                  <option value="admin">Administrateur</option>
-                </>
-              )}
-            </select>
-          </div>
-
-          {formData.role === 'user' && (
-            <div className="form-group">
-              <label>Manager :</label>
-              {currentUser.role === 'manager' ? (
-                <input
-                  type="text"
-                  value={currentUser.username}
-                  disabled
-                  className="disabled-input"
-                />
-              ) : (
-                <select
-                  value={formData.manager || ''}
-                  onChange={(e) => setFormData({ ...formData, manager: Number(e.target.value) })}
-                  required
-                >
-                  <option value="">Sélectionner un manager</option>
-                  {potentialManagers.map(manager => (
-                    <option key={manager.id} value={manager.id}>
-                      {manager.username} ({manager.role})
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-          )}
-
-          {error && <div className="error-message">{error}</div>}
-
-          <div className="form-buttons">
-            <button type="submit" className="submit-button">
-              {editingUser ? 'Mettre à jour' : 'Créer'}
-            </button>
-            {editingUser && (
-              <button type="button" onClick={handleCancel} className="cancel-button">
-                Annuler
-              </button>
-            )}
-          </div>
-        </form>
+    <div className="user-management-container">
+      <div className="user-list-header">
+        <h2>Liste des utilisateurs</h2>
+        <button className="add-user-button" onClick={handleOpenModal}>
+          <span>+</span>
+        </button>
       </div>
 
-      <div className="content-section">
-        <h2>Liste des utilisateurs</h2>
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>{editingUser ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}</h2>
+              <button className="close-modal-button" onClick={handleCloseModal}>×</button>
+            </div>
+            <form onSubmit={handleSubmit} className="form-container">
+              <div className="form-group">
+                <label>Nom d'utilisateur :</label>
+                <input
+                  type="text"
+                  value={formData.username}
+                  onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                  required
+                  placeholder="Nom d'utilisateur"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email :</label>
+                <input
+                  type="email"
+                  value={formData.email || ''}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Email"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Mot de passe :</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  required={!editingUser}
+                  placeholder={editingUser ? 'Laisser vide pour ne pas modifier' : 'Mot de passe'}
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Rôle :</label>
+                <select
+                  value={formData.role}
+                  onChange={(e) => handleRoleChange(e.target.value as 'admin' | 'manager' | 'user')}
+                  required
+                >
+                  <option value="user">Utilisateur</option>
+                  {currentUser.is_superuser && (
+                    <>
+                      <option value="manager">Manager</option>
+                      <option value="admin">Administrateur</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              {formData.role === 'user' && (
+                <div className="form-group">
+                  <label>Manager :</label>
+                  {currentUser.role === 'manager' ? (
+                    <input
+                      type="text"
+                      value={currentUser.username}
+                      disabled
+                      className="disabled-input"
+                    />
+                  ) : (
+                    <select
+                      value={formData.manager || ''}
+                      onChange={(e) => setFormData({ ...formData, manager: Number(e.target.value) })}
+                      required
+                    >
+                      <option value="">Sélectionner un manager</option>
+                      {potentialManagers.map(manager => (
+                        <option key={manager.id} value={manager.id}>
+                          {manager.username} ({manager.role})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {error && <div className="error-message">{error}</div>}
+
+              <div className="form-buttons">
+                <button type="submit" className="submit-button">
+                  {editingUser ? 'Mettre à jour' : 'Créer'}
+                </button>
+                <button type="button" onClick={handleCloseModal} className="cancel-button">
+                  Annuler
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="user-list-section">
         <div className="table-container">
           <table>
             <thead>
