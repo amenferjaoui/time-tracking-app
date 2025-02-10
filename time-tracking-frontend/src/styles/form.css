@@ -4,6 +4,14 @@
   padding: 24px;
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 90%;
+}
+
+.main-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 90%;
 }
 
 .form-group {
