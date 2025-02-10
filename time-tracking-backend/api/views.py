@@ -94,20 +94,21 @@ class ProjetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base_queryset = Projet.objects.prefetch_related('users')
-        
+
         # Check if a specific user is requested in the query params
         requested_user_id = self.request.query_params.get('user')
-        
+
         if requested_user_id:
             requested_user = User.objects.get(id=requested_user_id)
             # If requested user is a manager, return projects they manage OR are assigned to
             if requested_user.is_staff:
                 return base_queryset.filter(
-                    models.Q(manager=requested_user) | models.Q(users=requested_user)
+                    models.Q(manager=requested_user) | models.Q(
+                        users=requested_user)
                 ).distinct()
             # For regular users, return only projects they're assigned to
             return base_queryset.filter(users=requested_user).distinct()
-        
+
         # No specific user requested, use default permission logic
         if user.is_superuser:
             return base_queryset.all()
@@ -125,7 +126,7 @@ class ProjetViewSet(viewsets.ModelViewSet):
                 "Only managers and admins can create projects")
 
         if self.request.user.is_superuser:
-            serializer.save()  
+            serializer.save()
         else:
             serializer.save(manager=self.request.user)
 
@@ -164,7 +165,6 @@ class ProjetViewSet(viewsets.ModelViewSet):
                 if manager_users.exists():
                     raise ValidationError(
                         "Managers can only assign regular users to projects")
-
 
                 invalid_users = users.exclude(manager=user)
                 if invalid_users.exists():
@@ -207,10 +207,9 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
 
         elif user.is_staff:
             return base_queryset.filter(
-                models.Q(user=user) |  
-                models.Q(user__manager=user)  
+                models.Q(user=user) |
+                models.Q(user__manager=user)
             )
-
 
         return base_queryset.filter(user=user)
 
@@ -218,7 +217,7 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
         mutable_data = request.data.copy() if hasattr(
             request.data, 'copy') else dict(request.data)
         user = request.user
-        
+
         if user.is_superuser:
             # Admin can create entries for anyone
             pass
@@ -228,15 +227,16 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 target_user_id = int(mutable_data.get('user', str(user.id)))
             except (ValueError, TypeError):
                 target_user_id = user.id
-            
+
             mutable_data['user'] = str(target_user_id)
-            
+
             # If creating for another user (not themselves)
             if target_user_id != user.id:
                 try:
                     target_user = User.objects.get(id=target_user_id)
                     if target_user.manager_id != user.id:
-                        raise PermissionDenied("You can only create entries for your managed users")
+                        raise PermissionDenied(
+                            "You can only create entries for your managed users")
                 except User.DoesNotExist:
                     raise ValidationError("Invalid user ID")
             # If creating for themselves, no additional checks needed
@@ -246,9 +246,10 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 target_user_id = int(mutable_data.get('user', str(user.id)))
             except (ValueError, TypeError):
                 target_user_id = user.id
-                
+
             if target_user_id != user.id:
-                raise PermissionDenied("You can only create your own time entries")
+                raise PermissionDenied(
+                    "You can only create your own time entries")
             mutable_data['user'] = str(user.id)
 
         serializer = self.get_serializer(data=mutable_data)
@@ -272,12 +273,14 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             # If updating another user's entry (not their own)
             if instance.user.id != user.id:
                 if instance.user.manager_id != user.id:
-                    raise PermissionDenied("You can only update entries for your managed users")
+                    raise PermissionDenied(
+                        "You can only update entries for your managed users")
             # If updating their own entry, no additional checks needed
         else:
             # Regular users can only update their own entries
             if instance.user.id != user.id:
-                raise PermissionDenied("You can only update your own time entries")
+                raise PermissionDenied(
+                    "You can only update your own time entries")
 
         return super().update(request, *args, **kwargs)
 
@@ -293,12 +296,14 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             # If deleting another user's entry (not their own)
             if instance.user.id != user.id:
                 if instance.user.manager_id != user.id:
-                    raise PermissionDenied("You can only delete entries for your managed users")
+                    raise PermissionDenied(
+                        "You can only delete entries for your managed users")
             # If deleting their own entry, no additional checks needed
         else:
             # Regular users can only delete their own entries
             if instance.user.id != user.id:
-                raise PermissionDenied("You can only delete your own time entries")
+                raise PermissionDenied(
+                    "You can only delete your own time entries")
 
         return super().destroy(request, *args, **kwargs)
 
@@ -349,6 +354,113 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=False, methods=['get'], url_path=r'(?P<user_id>\d+)/report/(?P<month>\d{4}-\d{2})')
+    # def report(self, request, user_id=None, month=None):
+    #     try:
+    #         from reportlab.lib import colors
+    #         from reportlab.lib.pagesizes import letter
+    #         from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    #         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    #         from io import BytesIO
+    #         from django.http import HttpResponse
+    #         from collections import defaultdict
+    #         from django.contrib.auth import get_user_model
+    #         User = get_user_model()
+    #         year, month = map(int, month.split('-'))
+    #         # Get user and time entries
+    #         target_user = User.objects.get(id=user_id)
+    #         queryset = SaisieTemps.objects.filter(
+    #             user_id=user_id,
+    #             date__year=year,
+    #             date__month=month
+    #         ).select_related('projet')  # Include project data to avoid N+1 queries
+    #         # Create PDF buffer
+    #         buffer = BytesIO()
+    #         doc = SimpleDocTemplate(buffer, pagesize=letter)
+    #         elements = []
+    #         styles = getSampleStyleSheet()
+    #         # Title
+    #         title_style = ParagraphStyle(
+    #             'CustomTitle',
+    #             parent=styles['Heading1'],
+    #             fontSize=16,
+    #             spaceAfter=30
+    #         )
+    #         month_name = {
+    #             1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
+    #             5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
+    #             9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
+    #         }[month]
+    #         title = Paragraph(
+    #             f"Rapport Mensuel - {target_user.username}<br/>"
+    #             f"{month_name} {year}",
+    #             title_style
+    #         )
+    #         elements.append(title)
+    #         # Group entries by project
+    #         project_entries = defaultdict(list)
+    #         for entry in queryset:
+    #             project_entries[entry.projet.nom].append(entry)
+    #         # Summary
+    #         total_hours = sum(
+    #             entry.temps for entries in project_entries.values() for entry in entries)
+    #         summary_data = [
+    #             ['Total des heures:', f"{total_hours:.2f}"],
+    #             ['Nombre de projets:', str(len(project_entries))]
+    #         ]
+    #         summary_table = Table(summary_data)
+    #         summary_table.setStyle(TableStyle([
+    #             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+    #             ('FONTSIZE', (0, 0), (-1, -1), 10),
+    #             ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    #             ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+    #             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #             ('PADDING', (0, 0), (-1, -1), 6),
+    #         ]))
+    #         elements.append(summary_table)
+    #         elements.append(Spacer(1, 20))
+    #         # Project details
+    #         for project_name, entries in project_entries.items():
+    #             # Project header
+    #             project_total = sum(entry.temps for entry in entries)
+    #             elements.append(Paragraph(
+    #                 f"{project_name} ({project_total:.2f}h)",
+    #                 styles['Heading2']
+    #             ))
+    #             # Project entries table
+    #             data = [['Date', 'Heures', 'Description']]
+    #             for entry in sorted(entries, key=lambda x: x.date):
+    #                 data.append([
+    #                     entry.date.strftime('%d/%m/%Y'),
+    #                     f"{entry.temps:.2f}",
+    #                     entry.description or ''
+    #                 ])
+    #             table = Table(data, colWidths=[100, 70, 300])
+    #             table.setStyle(TableStyle([
+    #                 ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+    #                 ('FONTSIZE', (0, 0), (-1, -1), 10),
+    #                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    #                 ('BACKGROUND', (0, 0), (2, 0), colors.lightgrey),
+    #                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #                 # Left align descriptions
+    #                 ('ALIGN', (2, 1), (2, -1), 'LEFT'),
+    #                 ('PADDING', (0, 0), (-1, -1), 6),
+    #             ]))
+    #             elements.append(table)
+    #             elements.append(Spacer(1, 20))
+    #         # Generate PDF
+    #         doc.build(elements)
+    #         pdf = buffer.getvalue()
+    #         buffer.close()
+    #         # Return PDF response
+    #         response = HttpResponse(content_type='application/pdf')
+    #         response['Content-Disposition'] = f'attachment; filename="report-{year}-{month:02d}-{user_id}.pdf"'
+    #         response.write(pdf)
+    #         return response
+    #     except (ValueError, TypeError):
+    #         return Response(
+    #             {"error": "Format de date invalide. Utilisez YYYY-MM"},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
     def report(self, request, user_id=None, month=None):
         try:
             from reportlab.lib import colors
@@ -363,32 +475,56 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             User = get_user_model()
             year, month = map(int, month.split('-'))
 
-            # Get user and time entries
+            # Récupération de l'utilisateur et des entrées de temps
             target_user = User.objects.get(id=user_id)
             queryset = SaisieTemps.objects.filter(
                 user_id=user_id,
                 date__year=year,
                 date__month=month
-            ).select_related('projet')  # Include project data to avoid N+1 queries
+            ).select_related('projet')
 
-            # Create PDF buffer
             buffer = BytesIO()
             doc = SimpleDocTemplate(buffer, pagesize=letter)
             elements = []
             styles = getSampleStyleSheet()
 
-            # Title
+            # Définition des styles et couleurs
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
-                fontSize=16,
-                spaceAfter=30
+                fontSize=18,
+                spaceAfter=20,
+                textColor=colors.darkblue
             )
+
+            table_header_style = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#4CAF50")),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+            ])
+
+            table_body_style = TableStyle([
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTSIZE', (0, 0), (-1, -1), 10),
+                ('PADDING', (0, 0), (-1, -1), 6),
+                # Alternance de couleurs
+                ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor("#f9f9f9")),
+            ])
+
+            def format_journee(value):
+                """ Convertit les heures en journées formatées """
+                return "1 journée" if value == 1 else "½ journée" if value == 0.5 else "0"
+
             month_name = {
                 1: 'Janvier', 2: 'Février', 3: 'Mars', 4: 'Avril',
                 5: 'Mai', 6: 'Juin', 7: 'Juillet', 8: 'Août',
                 9: 'Septembre', 10: 'Octobre', 11: 'Novembre', 12: 'Décembre'
             }[month]
+
             title = Paragraph(
                 f"Rapport Mensuel - {target_user.username}<br/>"
                 f"{month_name} {year}",
@@ -396,72 +532,48 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
             )
             elements.append(title)
 
-            # Group entries by project
+            # Organisation des données par projet
             project_entries = defaultdict(list)
             for entry in queryset:
                 project_entries[entry.projet.nom].append(entry)
 
-            # Summary
-            total_hours = sum(
+            # Résumé
+            total_journees = sum(
                 entry.temps for entries in project_entries.values() for entry in entries)
-            summary_data = [
-                ['Total des heures:', f"{total_hours:.2f}"],
-                ['Nombre de projets:', str(len(project_entries))]
-            ]
-            summary_table = Table(summary_data)
-            summary_table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('PADDING', (0, 0), (-1, -1), 6),
-            ]))
+            summary_data = [['Total des journées:', f"{total_journees:.1f}"], [
+                'Nombre de projets:', str(len(project_entries))]]
+            summary_table = Table(summary_data, colWidths=[200, 150])
+            summary_table.setStyle(table_body_style)
             elements.append(summary_table)
             elements.append(Spacer(1, 20))
 
-            # Project details
+            # Détails par projet
             for project_name, entries in project_entries.items():
-                # Project header
                 project_total = sum(entry.temps for entry in entries)
                 elements.append(Paragraph(
-                    f"{project_name} ({project_total:.2f}h)",
-                    styles['Heading2']
-                ))
+                    f"{project_name} ({format_journee(project_total)})", styles['Heading2']))
 
-                # Project entries table
-                data = [['Date', 'Heures', 'Description']]
+                # Création du tableau sans colonne "Description"
+                data = [['Date', 'Journées']]
                 for entry in sorted(entries, key=lambda x: x.date):
-                    data.append([
-                        entry.date.strftime('%d/%m/%Y'),
-                        f"{entry.temps:.2f}",
-                        entry.description or ''
-                    ])
+                    data.append([entry.date.strftime('%d/%m/%Y'),
+                                format_journee(entry.temps)])
 
-                table = Table(data, colWidths=[100, 70, 300])
-                table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('BACKGROUND', (0, 0), (2, 0), colors.lightgrey),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    # Left align descriptions
-                    ('ALIGN', (2, 1), (2, -1), 'LEFT'),
-                    ('PADDING', (0, 0), (-1, -1), 6),
-                ]))
+                table = Table(data, colWidths=[150, 100])
+                table.setStyle(table_header_style)
+                table.setStyle(table_body_style)
                 elements.append(table)
                 elements.append(Spacer(1, 20))
 
-            # Generate PDF
             doc.build(elements)
             pdf = buffer.getvalue()
             buffer.close()
 
-            # Return PDF response
             response = HttpResponse(content_type='application/pdf')
             response['Content-Disposition'] = f'attachment; filename="report-{year}-{month:02d}-{user_id}.pdf"'
             response.write(pdf)
             return response
+
         except (ValueError, TypeError):
             return Response(
                 {"error": "Format de date invalide. Utilisez YYYY-MM"},
