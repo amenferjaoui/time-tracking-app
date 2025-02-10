@@ -137,7 +137,7 @@ export default function MonthlyReport({ user, isManager, onUserSelect }: Props) 
     }, {});
   };
 
-  const totalHours = entries.reduce((sum, entry) => sum + entry.temps, 0);
+  const totalHours = entries.reduce((sum, entry) => sum + Number(entry.temps), 0);
   const monthlyData = aggregateData();
 
   // Exportation du rapport PDF
