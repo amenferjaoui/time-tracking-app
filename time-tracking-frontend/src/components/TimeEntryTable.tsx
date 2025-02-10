@@ -168,6 +168,8 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
 
   const [editingValue, setEditingValue] = useState<string>("");
   const [isEditing, setIsEditing] = useState<string>("");
+  const [previousValue, setPreviousValue] = useState<string>("");
+  const [showError, setShowError] = useState<boolean>(true);
 
   const formatHours = (value: number | string): string => {
     if (value === "" || value === undefined) return "";
@@ -192,8 +194,16 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
       
       const dateStr = date.toISOString().split("T")[0];
       const key = `${projectId}-${dateStr}`;
+
+      // Store previous value when starting to edit
+      if (isEditing !== key) {
+        const entry = timeEntries[key];
+        setPreviousValue(entry?.temps ? formatHours(entry.temps) : "");
+      }
+
       setEditingValue(newValue);
       setIsEditing(key);
+      setShowError(true);
 
       // If empty or still typing decimal, don't process yet
       if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
@@ -361,7 +371,26 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
                 const key = `${project.id}-${dateStr}`;
                 const entry = timeEntries[key];
                 return (
-                  <td key={dateStr} className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error ? "error" : ""}`}>
+                  <td 
+                    key={dateStr} 
+                    className={`hours-cell ${entry?.saving ? "saving" : ""} ${entry?.error && showError ? "error" : ""}`}
+                    onClick={() => {
+                      if (isEditing && entry?.error) {
+                        const [currentProjectId, currentDateStr] = isEditing.split('-');
+                        setTimeEntries(prev => ({
+                          ...prev,
+                          [`${currentProjectId}-${currentDateStr}`]: {
+                            ...prev[`${currentProjectId}-${currentDateStr}`],
+                            temps: parseFloat(previousValue.replace(",", ".")),
+                            error: undefined
+                          }
+                        }));
+                      }
+                      setShowError(false);
+                      setIsEditing("");
+                      setEditingValue("");
+                    }}
+                  >
                     <div className="input-container">
                       <input
                         type="text"
@@ -369,14 +398,31 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
                         pattern="[0-9]*[,.]?[0-9]*"
                         value={isEditing === key ? editingValue : (entry?.temps ? formatHours(entry.temps) : "")}
                         onChange={(e) => handleHoursChange(project.id, date, e.target.value)}
-                        onBlur={() => {
-                          setIsEditing("");
-                          setEditingValue("");
+                        onBlur={(e) => {
+                          // Only reset if clicking outside the input
+                          if (!e.relatedTarget || !e.relatedTarget.classList.contains('hours-input')) {
+                            setIsEditing("");
+                            setEditingValue("");
+                            setShowError(false);
+                            
+                            // If there was an error, restore the previous value
+                            if (entry?.error) {
+                              const key = `${project.id}-${dateStr}`;
+                              setTimeEntries(prev => ({
+                                ...prev,
+                                [key]: {
+                                  ...prev[key],
+                                  temps: parseFloat(previousValue.replace(",", ".")),
+                                  error: undefined
+                                }
+                              }));
+                            }
+                          }
                         }}
                         className="hours-input"
                       />
                       {entry?.saving && <div className="saving-indicator" />}
-                      {entry?.error && <div className="error-message">{entry.error}</div>}
+                      {entry?.error && showError && <div className="error-message">{entry.error}</div>}
                     </div>
                   </td>
                 );
