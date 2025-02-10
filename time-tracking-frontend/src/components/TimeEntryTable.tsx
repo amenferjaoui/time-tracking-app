@@ -97,37 +97,23 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
   }, [selectedDate]);
 
   const fetchTimeEntries = async () => {
-    if (!currentWeek || currentWeek.length < 7 || !selectedUserId) {
-      console.error("Invalid week data");
-      return;
-    }
-
-    const firstDay = currentWeek[0];
-    const lastDay = currentWeek[6];
-
-    if (!firstDay || !lastDay || isNaN(firstDay.getTime()) || isNaN(lastDay.getTime())) {
-      console.error("Invalid dates in week data");
+    if (!selectedUserId) {
+      console.error("No user selected");
       return;
     }
 
     try {
-      const firstDayMonth = `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, "0")}`;
-      const lastDayMonth = `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, "0")}`;
-      
-      const promises = [timeEntriesApi.getMonthlyReport(selectedUserId, firstDayMonth)];
-      if (firstDayMonth !== lastDayMonth) {
-        promises.push(timeEntriesApi.getMonthlyReport(selectedUserId, lastDayMonth));
-      }
-      
-      const responses = await Promise.all(promises);
+      // Get all time entries
+      const allEntriesRes = await timeEntriesApi.getAll();
       const entriesMap: TimeEntryMap = {};
       
-      responses.forEach(response => {
-        response.data.forEach((entry: TimeEntry) => {
+      // Filter entries for the selected user
+      allEntriesRes.data
+        .filter((entry: TimeEntry) => entry.user === selectedUserId)
+        .forEach((entry: TimeEntry) => {
           const key = `${entry.projet}-${entry.date}`;
           entriesMap[key] = { temps: entry.temps, entryId: entry.id };
         });
-      });
       
       setTimeEntries(entriesMap);
     } catch (error) {
@@ -135,28 +121,33 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     }
   };
 
-  // Fetch projects only once when component mounts
+  // Fetch projects when component mounts or selected user changes
   useEffect(() => {
     const fetchProjects = async () => {
       try {
-        const projectsRes = await projectsApi.getAll();
+        console.log(selectedUserId);
+        const projectsRes = selectedUserId && selectedUserId !== currentUser?.id
+          ? await projectsApi.getProjectsForUsers(selectedUserId)
+          : await projectsApi.getAll();
         setProjects(projectsRes.data);
+        console.log("Projects fetched:", projectsRes.data);
       } catch (error) {
         console.error("Error fetching projects:", error);
       }
     };
     fetchProjects();
-  }, []);
+  }, [selectedUserId]);
 
-  // Fetch time entries whenever currentWeek changes
+  // Fetch time entries whenever currentWeek or selectedUser changes
   useEffect(() => {
     const fetchData = async () => {
-      if (!currentWeek || currentWeek.length < 7) {
+      if (!currentWeek || currentWeek.length < 7 || !selectedUserId) {
         return;
       }
 
       setIsLoading(true);
       try {
+        // Fetch time entries for the selected user
         await fetchTimeEntries();
       } catch (error) {
         console.error("Error fetching time entries:", error);

@@ -92,6 +92,10 @@ const projectsApi = {
     const response = await axiosInstance.get<Project[]>('/projets/');
     return response;
   },
+  getProjectsForUsers: async (userId: number) => {
+    const response = await axiosInstance.get<Project[]>(`/projets/?user=${userId}`);
+    return response;
+  },
   create: async (project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) => {
     const response = await axiosInstance.post<Project>('/projets/', project);
     return response;

@@ -94,7 +94,15 @@ class ProjetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         base_queryset = Projet.objects.prefetch_related('users')
-
+        
+        # Check if a specific user is requested in the query params
+        requested_user_id = self.request.query_params.get('user')
+        
+        if requested_user_id:
+            # If a specific user is requested, return only projects assigned to that user
+            return base_queryset.filter(users__id=requested_user_id).distinct()
+        
+        # Otherwise, use the default permission logic
         if user.is_superuser:
             return base_queryset.all()
         elif user.is_staff:
@@ -275,11 +283,8 @@ class SaisieTempsViewSet(viewsets.ModelViewSet):
                 date__lte=end_date
             ).select_related('projet')  # Include project data to avoid N+1 queries
 
-            # Get all projects for this user
-            projects = Projet.objects.filter(
-                models.Q(saisietemps__user_id=user_id) |
-                models.Q(manager=request.user)
-            ).distinct()
+            # Get all projects assigned to this user
+            projects = Projet.objects.filter(users__id=user_id).distinct()
 
             # Create a map of existing entries
             entry_map = {}
