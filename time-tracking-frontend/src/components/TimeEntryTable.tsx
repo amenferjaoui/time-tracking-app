@@ -178,148 +178,140 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
     return number.toFixed(2).replace(".", ",");
   };
 
-  const calculateDayTotal = (dateStr: string, excludeProjectId?: number) => {
-    return Object.entries(timeEntries).reduce((total, [key, entry]) => {
-      const [projectId, entryDate] = key.split('-');
-      if (entryDate === dateStr && Number(projectId) !== excludeProjectId) {
-        return total + entry.temps;
-      }
-      return total;
-    }, 0);
-  };
-
-  const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
-    // Allow typing numbers, dot and comma
-    if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
-    
-    const dateStr = date.toISOString().split("T")[0];
-    const key = `${projectId}-${dateStr}`;
-
-    // Store previous value when starting to edit
-    if (isEditing !== key) {
-      const entry = timeEntries[key];
-      setPreviousValue(entry?.temps ? formatHours(entry.temps) : "");
-    }
-
-    setEditingValue(newValue);
-    setIsEditing(key);
-    setShowError(true);
-
-    // If empty or still typing decimal, don't process yet
-    if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
-      return;
-    }
-
-    const hours = parseFloat(newValue.replace(",", "."));
-    const existingEntry = timeEntries[key];
-    
-    // If value hasn't changed, do nothing
-    if (existingEntry?.temps === hours) {
-      return;
-    }
-
-    // Validate input value first
-    if (![0, 0.5, 1].includes(hours)) {
-      const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
-      setEditingValue(restoredValue);
-      setTimeEntries(prev => ({
-        ...prev,
-        [key]: { 
-          ...prev[key], 
-          temps: existingEntry?.temps || 0,
-          error: "Seules les valeurs 0, 0.5 et 1 sont autorisées"
+    const calculateDayTotal = (dateStr: string, excludeProjectId?: number) => {
+      return Object.entries(timeEntries).reduce((total, [key, entry]) => {
+        const [projectId, entryDate] = key.split('-');
+        if (entryDate === dateStr && Number(projectId) !== excludeProjectId) {
+          return total + entry.temps;
         }
-      }));
-      return;
-    }
+        return total;
+      }, 0);
+    };
 
-    // Then validate total time for this day
-    const dayTotal = calculateDayTotal(dateStr, projectId);
-    if (dayTotal + hours > 1.0) {
-      const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
-      setEditingValue(restoredValue);
-      setTimeEntries(prev => ({
-        ...prev,
-        [key]: { 
-          ...prev[key], 
-          temps: existingEntry?.temps || 0,
-          error: `Le temps total (${dayTotal + hours}) ne peut pas dépasser 1 journée .`
-        }
-      }));
-      return;
-    }
+    const handleHoursChange = async (projectId: number, date: Date, newValue: string) => {
+      // Allow typing numbers, dot and comma
+      if (!/^[0-9]*[,.]?[0-9]*$/.test(newValue) && newValue !== "") return;
+      
+      const dateStr = date.toISOString().split("T")[0];
+      const key = `${projectId}-${dateStr}`;
 
-    try {
-      if (hours === 0 && existingEntry?.entryId) {
-        // Set saving state before API call
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { 
-            ...prev[key], 
-            saving: true, 
-            error: undefined 
-          }
-        }));
-        await timeEntriesApi.delete(existingEntry.entryId);
-        setTimeEntries(prev => {
-          const updatedEntries = { ...prev };
-          delete updatedEntries[key];
-          return updatedEntries;
-        });
-      } else if (existingEntry?.entryId) {
-        // Set saving state before API call
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { 
-            ...prev[key], 
-            saving: true, 
-            error: undefined 
-          }
-        }));
-        await timeEntriesApi.update(existingEntry.entryId, { temps: hours });
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
-        }));
-      } else if (hours > 0) {
-        // Set saving state before API call
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { 
-            ...prev[key], 
-            saving: true, 
-            error: undefined 
-          }
-        }));
-        const response = await timeEntriesApi.create({ 
-          date: dateStr, 
-          projet: projectId, 
-          temps: hours, 
-          description: "",
-          user: selectedUserId 
-        });
-        setTimeEntries(prev => ({
-          ...prev,
-          [key]: { temps: hours, entryId: response.data.id, saving: false }
-        }));
+      // Store previous value when starting to edit
+      if (isEditing !== key) {
+        const entry = timeEntries[key];
+        setPreviousValue(entry?.temps ? formatHours(entry.temps) : "");
       }
-    } catch (error: unknown) {
-      // Check if it's a time limit error (status 400)
-      if (error instanceof Error && 'response' in error && (error as any).response?.status === 400) {
-        const dayTotal = calculateDayTotal(dateStr, projectId);
+
+      setEditingValue(newValue);
+      setIsEditing(key);
+      setShowError(true);
+
+      // If empty or still typing decimal, don't process yet
+      if (newValue === "" || newValue === "." || newValue === "," || newValue.endsWith(".") || newValue.endsWith(",")) {
+        return;
+      }
+
+      const hours = parseFloat(newValue.replace(",", "."));
+      const existingEntry = timeEntries[key];
+      
+      // If value hasn't changed, do nothing
+      if (existingEntry?.temps === hours) {
+        return;
+      }
+
+      // Validate input value first
+      if (![0, 0.5, 1].includes(hours)) {
+        const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
+        setEditingValue(restoredValue);
         setTimeEntries(prev => ({
           ...prev,
           [key]: { 
             ...prev[key], 
             temps: existingEntry?.temps || 0,
-            saving: false, 
-            error: `Le temps total ne peut pas dépasser 1 journée .`
+            error: "Seules les valeurs 0, 0.5 et 1 sont autorisées"
           }
         }));
-      } else {
-        const errorMessage = error instanceof Error 
-          ? error.message 
-          : "Échec de l'enregistrement";
+        return;
+      }
+
+      // Then validate total time for this day
+      const dayTotal = calculateDayTotal(dateStr, projectId);
+      if (dayTotal + hours > 1.0) {
+        const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
+        setEditingValue(restoredValue);
+        setTimeEntries(prev => ({
+          ...prev,
+          [key]: { 
+            ...prev[key], 
+            temps: existingEntry?.temps || 0,
+            error: `Le temps total (${dayTotal + hours}) ne peut pas dépasser 1 journée.`
+          }
+        }));
+        return;
+      }
+
+      try {
+        if (hours === 0 && existingEntry?.entryId) {
+          // Set saving state before API call
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { 
+              ...prev[key], 
+              saving: true, 
+              error: undefined 
+            }
+          }));
+          await timeEntriesApi.delete(existingEntry.entryId);
+          setTimeEntries(prev => {
+            const updatedEntries = { ...prev };
+            delete updatedEntries[key];
+            return updatedEntries;
+          });
+        } else if (existingEntry?.entryId) {
+          // Set saving state before API call
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { 
+              ...prev[key], 
+              saving: true, 
+              error: undefined 
+            }
+          }));
+          await timeEntriesApi.update(existingEntry.entryId, { temps: hours });
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { temps: hours, entryId: existingEntry.entryId, saving: false }
+          }));
+        } else if (hours > 0) {
+          // Set saving state before API call
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { 
+              ...prev[key], 
+              saving: true, 
+              error: undefined 
+            }
+          }));
+          const response = await timeEntriesApi.create({ 
+            date: dateStr, 
+            projet: projectId, 
+            temps: hours, 
+            description: "",
+            user: selectedUserId 
+          });
+          setTimeEntries(prev => ({
+            ...prev,
+            [key]: { temps: hours, entryId: response.data.id, saving: false }
+          }));
+        }
+      } catch (error: unknown) {
+        let errorMessage = "Échec de l'enregistrement";
+        if (error instanceof Error) {
+          if (error.message.includes("status code 400")) {
+            errorMessage = "Le temps travaillé ne peut pas dépasser 1 sur une seule journée";
+          } else {
+            errorMessage = error.message;
+          }
+        }
         setTimeEntries(prev => ({
           ...prev,
           [key]: { 
@@ -329,11 +321,10 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
             error: errorMessage 
           }
         }));
+        // Restore the previous value in the input
+        const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
+        setEditingValue(restoredValue);
       }
-      // Restore the previous value in the input
-      const restoredValue = existingEntry?.temps ? formatHours(existingEntry.temps) : "";
-      setEditingValue(restoredValue);
-    }
   };
 
   if (isLoading) {
@@ -342,31 +333,29 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
 
   return (
     <div className="timesheet-container">
-      <div className="timesheet-header">
-        {currentUser?.is_staff && users.length > 0 && (
-          <div className="user-selector">
-            <label>Utilisateur : </label>
-            <select 
-              value={selectedUserId} 
-              onChange={(e) => setSelectedUserId(Number(e.target.value))}
-            >
-              {users.map(user => (
-                <option key={user.id} value={user.id}>
-                  {user.username}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="timesheet-controls">
-          <button className="week-button" onClick={() => handleWeekChange("prev")}>
-            ← Semaine précédente
-          </button>
-          <span className="week-label">Semaine du {currentWeek[0]?.toLocaleDateString("fr-FR")}</span>
-          <button className="week-button" onClick={() => handleWeekChange("next")}>
-            Semaine suivante →
-          </button>
+      {currentUser?.is_staff && users.length > 0 && (
+        <div className="user-selector">
+          <label>Utilisateur : </label>
+          <select 
+            value={selectedUserId} 
+            onChange={(e) => setSelectedUserId(Number(e.target.value))}
+          >
+            {users.map(user => (
+              <option key={user.id} value={user.id}>
+                {user.username}
+              </option>
+            ))}
+          </select>
         </div>
+      )}
+      <div className="timesheet-controls">
+        <button className="week-button" onClick={() => handleWeekChange("prev")}>
+          ← Semaine précédente
+        </button>
+        <span className="week-label">Semaine du {currentWeek[0]?.toLocaleDateString("fr-FR")}</span>
+        <button className="week-button" onClick={() => handleWeekChange("next")}>
+          Semaine suivante →
+        </button>
       </div>
       <table className="timesheet-table">
         <thead>
