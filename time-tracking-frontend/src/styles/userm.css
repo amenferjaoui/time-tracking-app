@@ -1,6 +1,10 @@
 .user-management {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #333;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 90%;
+    padding: 20px;
   }
   
   .table-container {
@@ -90,4 +94,3 @@
     font-size: 14px;
     text-align: center;
   }
-  
