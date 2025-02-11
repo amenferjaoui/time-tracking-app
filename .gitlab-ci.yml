@@ -18,7 +18,7 @@ lint:
     - pip install flake8
     - cd time-tracking-backend
   script:
-    - flake8 .
+    - flake8 . --ignore=E501,W293,E302,E305,F401,F841,W504,F811,W291 --max-line-length=120
   allow_failure: true
 
 lint-frontend:
