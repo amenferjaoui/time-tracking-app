@@ -1,6 +1,6 @@
 # Time Tracking Application
 
-This is a time tracking application with a Django backend and a React frontend.
+This application is a comprehensive time tracking tool designed to help individuals and teams monitor and manage their work hours effectively. It provides a user-friendly interface for logging time entries, categorizing them under different projects, and generating insightful reports. Built with a Django backend for robust API and data management, and a React frontend for a dynamic and responsive user experience, this application is ideal for freelancers, small businesses, and larger organizations looking to optimize productivity and track project time accurately.
 
 ## Project Structure
 
