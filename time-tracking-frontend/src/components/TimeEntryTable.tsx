@@ -317,8 +317,8 @@ export default function TimeEntryTable({ userId: propUserId }: Props) {
   return (
     <div className="timesheet-container">
       {currentUser?.is_staff && users.length > 0 && (
-        <div className="user-selector">
-          <label>Utilisateur : </label>
+        <div className="user-selector" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <label>Utilisateur:</label>
           <select 
             value={selectedUserId} 
             onChange={(e) => setSelectedUserId(Number(e.target.value))}
