@@ -1,146 +1,374 @@
-# Time Tracking Application
+# 🕐 MyT&R - Time Tracking & Reporting Application
 
 <div align="center">
-  <img src="time-tracking-frontend/src/assets/logo.png" width="200" />
+  <img src="time-tracking-frontend/src/assets/logo.png" alt="MyT&R Logo" width="150"/>
+  
+  ### Professional Time Management Solution
+  
+  [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=flat&logo=react&logoColor=white)](https://reactjs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+  [![Django](https://img.shields.io/badge/Django-5.1-092E20?style=flat&logo=django&logoColor=white)](https://www.djangoproject.com/)
+  [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Latest-4169E1?style=flat&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+  [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker&logoColor=white)](https://www.docker.com/)
+  
 </div>
 
+---
 
-This application is a comprehensive time tracking tool designed to help individuals and teams monitor and manage their work hours effectively. It provides a user-friendly interface for logging time entries, categorizing them under different projects, and generating insightful reports. Built with a Django backend for robust API and data management, and a React frontend for a dynamic and responsive user experience, this application is ideal for freelancers, small businesses, and larger organizations looking to optimize productivity and track project time accurately.
+## 📋 Overview
 
-## Project Structure
+**MyT&R** is a comprehensive enterprise-grade time tracking and reporting application designed for organizations with hierarchical team structures. Built with modern technologies, it provides role-based access control, intuitive time entry management, and automated PDF report generation.
 
--   `time-tracking-backend`: Contains the Django backend code.
-    -   `api`: Contains the API endpoints.
-    -   `back`: Contains the project settings and configuration.
-    -   `models.py`: Defines the database models (Project, TimeEntry, User).
-    -   `serializers.py`: Defines the serializers for the API.
-    -   `views.py`: Defines the API views.
-    -   `urls.py`: Defines the API URLs.
--   `time-tracking-frontend`: Contains the React frontend code.
-    -   `src`: Contains the source code for the frontend.
-    -   `components`: Contains the React components.
-    -   `services`: Contains the API service.
-    -   `styles`: Contains the CSS styles.
-    -   `App.tsx`: Main application component.
-    -   `index.tsx`: Entry point for the React application.
-    -   `vite.config.ts`: Vite configuration.
--   `docker-compose.yml`: Docker Compose file for running the application.
+### 🎯 Key Features
 
-## Prerequisites
+- **🔐 Role-Based Access Control** - Three-tier permission system (Admin, Manager, User)
+- **⏱️ Intuitive Time Entry** - Weekly view with easy time logging per project
+- **📊 Automated Reporting** - Monthly PDF reports with detailed breakdowns
+- **👥 User Management** - Complete user lifecycle and assignment management
+- **📁 Project Management** - Create, assign, and track multiple projects
+- **🔄 Real-time Updates** - Instant synchronization across all views
+- **📱 Responsive Design** - Works seamlessly on desktop and mobile devices
 
--   Python 3.x
--   Node.js and npm (or yarn)
--   Docker (optional, for running with Docker Compose)
+---
 
-## Backend Setup
+## 🖼️ Application Screenshots
 
-1.  Navigate to the `time-tracking-backend` directory:
-    ```bash
-    cd time-tracking-app/time-tracking-backend
-    ```
-2.  Create a virtual environment (recommended):
-    ```bash
-    python -m venv venv
-    ```
-3.  Activate the virtual environment:
-    -   On Windows:
-        ```bash
-        venv\\Scripts\\activate
-        ```
-    -   On macOS/Linux:
-        ```bash
-        source venv/bin/activate
-        ```
-4.  Install the dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-5.  Apply database migrations:
-    ```bash
-    python manage.py migrate
-    ```
-6.  Create a superuser (for admin access):
-    ```bash
-    python manage.py createsuperuser
-    ```
-7.  Run the development server:
-    ```bash
-    python manage.py runserver
-    ```
+### 🔑 Authentication
+<img src="screens/login.png" alt="Login Page" width="800"/>
 
-## Frontend Setup
+*Secure authentication with JWT tokens*
 
-1.  Navigate to the `time-tracking-frontend` directory:
-    ```bash
-    cd time-tracking-app/time-tracking-frontend
-    ```
-2.  Install the dependencies:
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-3.  Run the development server:
-    ```bash
-    npm run dev
-    # or
-    yarn dev
-    ```
+### 📅 Time Entry Dashboard
+<img src="screens/dashboard.png" alt="Time Entry Dashboard" width="800"/>
 
-## Running with Docker Compose (Optional)
+*Weekly time entry interface with project selection and navigation*
 
-1.  Make sure you have Docker and Docker Compose installed.
-2.  Navigate to the `time-tracking-app` directory:
-    ```bash
-    cd time-tracking-app
-    ```
-3.  Run the following command to build and start the containers:
-    ```bash
-    docker-compose up --build
-    ```
-4.  Access the application in your browser at `http://localhost:5173` (or the port specified in your frontend's `vite.config.ts`). The backend will be accessible at `http://localhost:8000`.
+### 📈 Monthly Reports
+<img src="screens/report.png" alt="Monthly Report View" width="800"/>
 
-## API Endpoints
+*Comprehensive monthly reports with project breakdowns and PDF export*
 
-Here's a basic outline of the API endpoints. This section will be expanded with more specific details about each endpoint, including request methods, parameters, and response formats.
+### 📄 PDF Export
+<img src="screens/pdf_report.png" alt="PDF Report" width="800"/>
+
+* PDF reports generated with ReportLab*
+
+### 📂 Project Management
+<img src="screens/projects.png" alt="Project Management" width="800"/>
+
+*Create and manage projects with user assignments*
+
+### 👤 User Administration
+<img src="screens/users_management.png" alt="User Management" width="800"/>
+
+*Complete user management with role assignment and manager hierarchy*
+
+---
+
+## 🏗️ Architecture
+
+### Tech Stack
+
+#### Frontend
+- **React 18.3** - Modern UI library with hooks
+- **TypeScript 5.6** - Type-safe development
+- **Vite** - Lightning-fast build tool
+- **React Router DOM** - Client-side routing
+- **Axios** - HTTP client for API communication
+- **React Hook Form** - Efficient form management
+- **React Icons** - Comprehensive icon library
+
+#### Backend
+- **Django 5.1** - Robust Python web framework
+- **Django REST Framework 3.15** - Powerful API toolkit
+- **PostgreSQL** - Enterprise-grade database
+- **JWT Authentication** - Secure token-based auth
+- **ReportLab 4.1** - PDF generation library
+- **Gunicorn** - Production WSGI server
+
+#### DevOps
+- **Docker & Docker Compose** - Containerized deployment
+- **GitLab CI/CD** - Automated testing and deployment
+- **CORS Headers** - Secure cross-origin requests
+
+---
+
+## 👥 User Roles & Permissions
+
+### 🔵 User
+- ✅ Login with credentials
+- ✅ Enter personal time entries
+- ✅ View and edit own time entries
+- ✅ Generate personal monthly PDF reports
+
+### 🟢 Manager
+- ✅ All User permissions
+- ✅ View and edit team members' time entries
+- ✅ Generate PDF reports for managed users
+- ✅ Create, modify, and delete managed projects
+- ✅ Assign users to projects
+
+### 🔴 Admin
+- ✅ All Manager permissions
+- ✅ Assign project managers (from admins/managers)
+- ✅ Assign managers to users
+- ✅ Change user roles and status
+- ✅ Modify user assignments across the organization
+- ✅ Full system administration
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Docker & Docker Compose** (recommended)
+- **Python 3.11+** (for local development)
+- **Node.js 18+** (for local development)
+- **PostgreSQL 15+** (for local development)
+
+### 🐳 Docker Deployment (Recommended)
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd time-tracking-app
+
+# Start all services
+docker-compose up --build
+
+# Access the application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:8000
+# Admin Panel: http://localhost:8000/admin
+```
+
+### 💻 Local Development Setup
+
+#### Backend Setup
+
+```bash
+cd time-tracking-backend
+
+# Create virtual environment
+python -m venv venv
+
+# Activate virtual environment
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run migrations
+python manage.py migrate
+
+# Create superuser
+python manage.py createsuperuser
+
+# Start development server
+python manage.py runserver
+```
+
+#### Frontend Setup
+
+```bash
+cd time-tracking-frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+---
+
+## 📡 API Documentation
 
 ### Base URL
+```
+http://localhost:8000/api/
+```
 
-`/api/` (This will likely be prefixed by `http://localhost:8000` during local development)
+### Authentication Endpoints
 
-### Authentication
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/token/` | Obtain JWT access & refresh tokens |
+| POST | `/api/token/refresh/` | Refresh access token |
+| POST | `/api/token/verify/` | Verify token validity |
 
--   `/api/token/`: Obtain JWT token (POST)
--   `/api/token/refresh/`: Refresh JWT token (POST)
-- `/api/token/verify/`: Verify JWT Token (POST)
+### User Management
 
-### Users
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users/` | List all users |
+| POST | `/api/users/` | Create new user |
+| GET | `/api/users/{id}/` | Get user details |
+| PUT/PATCH | `/api/users/{id}/` | Update user |
+| DELETE | `/api/users/{id}/` | Delete user |
 
-- `/api/users/` : User list (GET), Create user (POST)
-- `/api/users/<int:pk>/`: Retrieve (GET), Update (PUT/PATCH), Delete (DELETE) a specific user.
+### Project Management
 
-### Projects
-
--   `/api/projects/`: Project list (GET), Create project (POST)
--   `/api/projects/<int:pk>/`: Retrieve (GET), Update (PUT/PATCH), Delete (DELETE) a specific project.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/projects/` | List all projects |
+| POST | `/api/projects/` | Create new project |
+| GET | `/api/projects/{id}/` | Get project details |
+| PUT/PATCH | `/api/projects/{id}/` | Update project |
+| DELETE | `/api/projects/{id}/` | Delete project |
 
 ### Time Entries
 
--   `/api/time-entries/`: Time entry list (GET), Create time entry (POST)
--   `/api/time-entries/<int:pk>/`: Retrieve (GET), Update (PUT/PATCH), Delete (DELETE) a specific time entry.
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/time-entries/` | List time entries |
+| POST | `/api/time-entries/` | Create time entry |
+| GET | `/api/time-entries/{id}/` | Get entry details |
+| PUT/PATCH | `/api/time-entries/{id}/` | Update entry |
+| DELETE | `/api/time-entries/{id}/` | Delete entry |
 
-## Contributing
+### Reports
 
-Contributions are welcome! Please follow these guidelines when contributing to the project:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/reports/monthly/` | Generate monthly report |
+| GET | `/api/reports/export-pdf/` | Export report as PDF |
 
-1.  **Fork the repository** and create your branch from `main`.
-2.  **Code Style:** Follow the existing code style and conventions. For Python, adhere to PEP 8 standards. For JavaScript/TypeScript, use Prettier and ESLint to maintain code consistency.
-3.  **Commit Messages:** Write clear and concise commit messages. Follow conventional commits guidelines.
-4.  **Pull Requests:** Submit pull requests to the `main` branch. Ensure your pull request includes:
-    -   A clear description of the changes.
-    -   Any relevant tests for new features or bug fixes.
-    -   Confirmation that all tests pass.
+---
 
-Before submitting a pull request, please ensure your changes are well-tested and adhere to the project's coding standards.
+## 🗂️ Project Structure
 
-Thank you for contributing!
+```
+time-tracking-app/
+├── time-tracking-backend/          # Django REST API
+│   ├── api/                        # API application
+│   │   ├── models.py              # Database models
+│   │   ├── serializers.py         # DRF serializers
+│   │   ├── views.py               # API views
+│   │   └── urls.py                # API routing
+│   ├── back/                       # Project settings
+│   │   ├── settings.py            # Django configuration
+│   │   └── urls.py                # Main URL configuration
+│   ├── requirements.txt            # Python dependencies
+│   └── Dockerfile                  # Backend container
+│
+├── time-tracking-frontend/         # React TypeScript SPA
+│   ├── src/
+│   │   ├── components/            # React components
+│   │   │   ├── Login.tsx          # Authentication
+│   │   │   ├── TimeEntryTable.tsx # Time entry interface
+│   │   │   ├── MonthlyReport.tsx  # Report generation
+│   │   │   ├── ProjectManagement.tsx
+│   │   │   └── UserManagement.tsx
+│   │   ├── services/              # API integration
+│   │   │   └── api.ts             # Axios configuration
+│   │   ├── styles/                # CSS modules
+│   │   └── types/                 # TypeScript definitions
+│   ├── package.json               # Node dependencies
+│   └── Dockerfile                 # Frontend container
+│
+├── docker-compose.yml             # Multi-container orchestration
+├── .gitlab-ci.yml                 # CI/CD pipeline
+└── README.md                      # This file
+```
+
+---
+
+## 🧪 Testing
+
+### Backend Tests
+```bash
+cd time-tracking-backend
+python manage.py test
+```
+
+### Frontend Tests
+```bash
+cd time-tracking-frontend
+npm test
+```
+
+---
+
+## 🔒 Security Features
+
+- **JWT Authentication** - Secure token-based authentication
+- **Password Hashing** - Django's built-in password encryption
+- **CORS Protection** - Configured cross-origin resource sharing
+- **Role-Based Access Control** - Granular permission system
+- **SQL Injection Protection** - Django ORM parameterized queries
+- **XSS Prevention** - React's built-in escaping
+
+---
+
+## 🌟 Highlights for Recruiters
+
+### Technical Excellence
+- ✅ **Full-Stack Development** - Complete ownership from database to UI
+- ✅ **Modern Tech Stack** - Latest versions of React, TypeScript, and Django
+- ✅ **Clean Architecture** - Separation of concerns and modular design
+- ✅ **Type Safety** - TypeScript for robust frontend development
+- ✅ **RESTful API Design** - Industry-standard API architecture
+- ✅ **Containerization** - Docker-ready for easy deployment
+
+### Professional Features
+- ✅ **Role-Based Access Control** - Enterprise-grade permission system
+- ✅ **PDF Generation** - Automated report creation with ReportLab
+- ✅ **Responsive Design** - Mobile-first approach
+- ✅ **Real-time Updates** - Optimistic UI updates
+- ✅ **Form Validation** - Client and server-side validation
+- ✅ **Error Handling** - Comprehensive error management
+
+### Best Practices
+- ✅ **Git Version Control** - Structured commit history
+- ✅ **CI/CD Pipeline** - Automated testing and deployment
+- ✅ **Code Organization** - Clear project structure
+- ✅ **Documentation** - Comprehensive README and code comments
+- ✅ **Testing** - Unit and integration tests
+- ✅ **Security First** - Authentication and authorization
+
+---
+
+## 📈 Future Enhancements
+
+- [ ] Email notifications for report generation
+- [ ] Advanced analytics dashboard
+- [ ] Mobile native applications (React Native)
+- [ ] Integration with calendar systems
+- [ ] Bulk time entry import/export
+- [ ] Multi-language support (i18n)
+- [ ] Dark mode theme
+- [ ] Real-time collaboration features
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/AmazingFeature`)
+3. **Commit** your changes (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** to the branch (`git push origin feature/AmazingFeature`)
+5. **Open** a Pull Request
+
+### Code Style
+- **Python**: Follow PEP 8 standards
+- **TypeScript**: Use ESLint and Prettier configurations
+- **Commits**: Follow conventional commits format
+
+---
+
+
+
+<div align="center">
+  
+### ⭐ If you find this project interesting, please consider giving it a star!
+
+**Built with modern technologies for real-world applications**
+
+</div>
